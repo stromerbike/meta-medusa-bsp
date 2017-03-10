@@ -1,0 +1,74 @@
+#! /bin/bash
+
+NAME=chip-init
+DESC="Initialization of GSM, GNSS chips and LED driver"
+
+case $1 in
+start)
+	rmmod leds_lp5523
+	rmmod leds_lp55xx_common
+
+	echo "Enable LED chip"
+	echo "500" > /sys/class/gpio/export
+	echo "out" > /sys/class/gpio/gpio500/direction
+	echo "1" > /sys/class/gpio/gpio500/value
+
+	echo "Reload LED driver"
+	modprobe leds_lp5523
+
+	# GSM power on se to low
+	# GPIO5 IO04 => (5 -1) * 32 + 4 = 132
+	# GPIO1 IO02 => (1 -1) * 32 + 2 = 2
+	echo "2" > /sys/class/gpio/export
+	echo "out" > /sys/class/gpio/gpio2/direction
+	echo "0" > /sys/class/gpio/gpio2/value
+
+	# GSM reset set to high
+	# GPIO5 IO00 => (5 - 1) * 32 = 128
+	echo "128" > /sys/class/gpio/export
+	echo "out" > /sys/class/gpio/gpio128/direction
+	echo "0" > /sys/class/gpio/gpio128/value
+
+	# GSM modul
+	# 3v7_ON enable voltage (GPIO expander)
+	echo "497" > /sys/class/gpio/export
+	echo "out" > /sys/class/gpio/gpio497/direction
+	echo "1" > /sys/class/gpio/gpio497/value
+
+	# Make pulse to start GSM module
+	echo "1" > /sys/class/gpio/gpio2/value
+	sleep 0.03
+	echo "0" > /sys/class/gpio/gpio2/value
+
+	# GNSS modul
+	# GNSS reset set to high
+	# GPIO4 IO28 => (4 - 1) * 32 + 28 = 124
+	echo "124" > /sys/class/gpio/export
+	echo "out" > /sys/class/gpio/gpio124/direction
+	echo "1" > /sys/class/gpio/gpio124/value
+	# GNSS force on set to low
+	# GPIO4 IO27 => (4 - 1) * 32 + 27 = 123
+	echo "123" > /sys/class/gpio/export
+	echo "out" > /sys/class/gpio/gpio123/direction
+	echo "0" > /sys/class/gpio/gpio123/value
+	# GNSS sleep ctrl set to high (wake up)
+	# GPIO4 IO26 => (4 - 1) * 32 + 26 = 122
+	echo "122" > /sys/class/gpio/export
+	echo "out" > /sys/class/gpio/gpio122/direction
+	echo "1" > /sys/class/gpio/gpio122/value
+;;
+
+stop)
+	rmmod leds_lp5523
+	rmmod leds_lp55xx_common
+;;
+
+restart)
+	$0 stop
+	$0 start
+;;
+
+*)
+	echo "Usage $0 {start|stop|restart}"
+	exit
+esac
