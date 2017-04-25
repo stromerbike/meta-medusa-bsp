@@ -1,80 +1,78 @@
 diff --git a/drivers/Kconfig b/drivers/Kconfig
-index e1e2066..7232c7d 100644
+index e1e2066..662b0ab 100644
 --- a/drivers/Kconfig
 +++ b/drivers/Kconfig
 @@ -12,6 +12,8 @@ source "drivers/mtd/Kconfig"
  
  source "drivers/of/Kconfig"
  
-+source "drivers/omni/Kconfig"
++source "drivers/stromer/Kconfig"
 +
  source "drivers/parport/Kconfig"
  
  source "drivers/pnp/Kconfig"
 diff --git a/drivers/Makefile b/drivers/Makefile
-index 53abb4a..1fce4a3 100644
+index 53abb4a..0124cf0 100644
 --- a/drivers/Makefile
 +++ b/drivers/Makefile
 @@ -8,6 +8,8 @@
  obj-y				+= irqchip/
  obj-y				+= bus/
  
-+obj-y				+= omni/
++obj-y				+= stromer/
 +
  obj-$(CONFIG_GENERIC_PHY)	+= phy/
  
  # GPIO must come after pinctrl as gpios may need to mux pins etc
-diff --git a/drivers/omni/Kconfig b/drivers/omni/Kconfig
+diff --git a/drivers/stromer/Kconfig b/drivers/stromer/Kconfig
 new file mode 100644
-index 0000000..1abd215
+index 0000000..a59fdcb
 --- /dev/null
-+++ b/drivers/omni/Kconfig
-@@ -0,0 +1,31 @@
++++ b/drivers/stromer/Kconfig
+@@ -0,0 +1,29 @@
 +
-+menuconfig OMNIDISPTOUCH
-+	tristate "myStromer SUI - Display und Touch driver"
++menuconfig STROMER_DP
++	tristate "Stromer SUI - Display und Touch driver"
 +	---help---
 +	  Framebuffer driver for the IMX6UL LCDIF periphery in combination
 +	  with the ST7789 based display
 +
-+if OMNIDISPTOUCH
++if STROMER_DP
 +
 +config ILI2116_TOUCH
 +	tristate "ILI2116 touch controller driver"
-+	default m
 +	help
 +	  ILI2116 Touch controller driver using I2C interfaces
 +
 +config IMX6UL_LCDIF_ST7789
 +	tristate "LCDIF peripheral driver for a ST7789 display"
-+	default y
 +	help
 +	  LCDIF driver for IMX6UL for usage with a ST7789 based
 +	  display
 +
 +config ST7789_SPI
 +	tristate "ST7789 - Supports spi init functionality required for RGB interface"
-+	default y
 +	depends on IMX6UL_LCDIF_ST7789
 +	help
 +	  SPI driver for the ST7789 3-wire interface (1. SCL, 2. CS, 3. MISO/MOSI)
 +	  providing functions to inititalize the display for RGB interface
 +
-+endif # OMNIDISPTOUCH
-diff --git a/drivers/omni/Makefile b/drivers/omni/Makefile
++endif
++
+diff --git a/drivers/stromer/Makefile b/drivers/stromer/Makefile
 new file mode 100644
 index 0000000..9a682ec
 --- /dev/null
-+++ b/drivers/omni/Makefile
++++ b/drivers/stromer/Makefile
 @@ -0,0 +1,3 @@
 +obj-$(CONFIG_ILI2116_TOUCH)        += ili2116.o
 +obj-$(CONFIG_IMX6UL_LCDIF_ST7789)  += fb_imx6_lcdif.o
 +obj-$(CONFIG_ST7789_SPI)           += fb_imx6_st7789_spi.o
-diff --git a/drivers/omni/fb_imx6.h b/drivers/omni/fb_imx6.h
+diff --git a/drivers/stromer/fb_imx6.h b/drivers/stromer/fb_imx6.h
 new file mode 100644
-index 0000000..a561cfc
+index 0000000..3098c75
 --- /dev/null
-+++ b/drivers/omni/fb_imx6.h
++++ b/drivers/stromer/fb_imx6.h
 @@ -0,0 +1,54 @@
 +/*
 + * Copyright (C) 2017 Christian Duenki, Escatec Switzerland AG
@@ -87,7 +85,7 @@ index 0000000..a561cfc
 +#include <linux/platform_device.h>
 +
 +/** SPI driver name */
-+#define SPI_DRIVER_NAME "omni-st7789v"
++#define SPI_DRIVER_NAME "st7789v"
 +
 +/** Perform SPI init sequence */
 +#define DO_SPI_INIT_SEQUENCE
@@ -96,7 +94,7 @@ index 0000000..a561cfc
 +/** Register SPI device */
 +#define DO_REGISTER_SPI_DEVICE
 +/** Do panning in lcdif driver */
-+#define DO_LCDIF_PAN
++//#define DO_LCDIF_PAN
 +
 +/** Reset pin responsibility */
 +/* define RESET_DONE_BY_LCDIF */
@@ -130,11 +128,11 @@ index 0000000..a561cfc
 +	int gpio_reset;
 +#endif
 +};
-diff --git a/drivers/omni/fb_imx6_lcdif.c b/drivers/omni/fb_imx6_lcdif.c
+diff --git a/drivers/stromer/fb_imx6_lcdif.c b/drivers/stromer/fb_imx6_lcdif.c
 new file mode 100644
 index 0000000..84e5edd
 --- /dev/null
-+++ b/drivers/omni/fb_imx6_lcdif.c
++++ b/drivers/stromer/fb_imx6_lcdif.c
 @@ -0,0 +1,1015 @@
 +/*
 + * Copyright (C) 2017 Christian Duenki, Escatec Switzerland AG
@@ -1151,11 +1149,11 @@ index 0000000..84e5edd
 +MODULE_DESCRIPTION("Freescale mxs framebuffer driver");
 +MODULE_AUTHOR("Christian Duenki, Escatec Switzerland AG");
 +MODULE_LICENSE("GPL");
-diff --git a/drivers/omni/fb_imx6_st7789_spi.c b/drivers/omni/fb_imx6_st7789_spi.c
+diff --git a/drivers/stromer/fb_imx6_st7789_spi.c b/drivers/stromer/fb_imx6_st7789_spi.c
 new file mode 100644
-index 0000000..14371c3
+index 0000000..a18f6e4
 --- /dev/null
-+++ b/drivers/omni/fb_imx6_st7789_spi.c
++++ b/drivers/stromer/fb_imx6_st7789_spi.c
 @@ -0,0 +1,472 @@
 +/*
 + * Copyright (C) 2017 Christian Duenki, Escatec Switzerland AG
@@ -1282,7 +1280,7 @@ index 0000000..14371c3
 +}
 +
 +/**
-+ * @brief Transmit spi messages to the omni-display
++ * @brief Transmit spi messages to the stromer-display
 + *
 + * @param buf[in] Data to be sent
 + * @param len[in] Length of message
@@ -1541,8 +1539,8 @@ index 0000000..14371c3
 +		return PTR_ERR(spi);
 +	}
 +
-+	/* dev_dbg(spi, "Probing OMNI-ST7789v device"); */
-+	pr_debug("Probing OMNI-ST7789v device");
++	/* dev_dbg(spi, "Probing STROMER-ST7789v device"); */
++	pr_debug("Probing STROMER-ST7789v device");
 +
 +	/* store spi device locally */
 +	disp.spi = spi;
@@ -1589,14 +1587,14 @@ index 0000000..14371c3
 +}
 +
 +static const struct of_device_id dt_ids[] = {
-+	{ .compatible = "omni-st7789v" },
++	{ .compatible = "st7789v" },
 +	{ /* sentinel */ },
 +};
 +MODULE_DEVICE_TABLE(of, dt_ids);
 +
 +static struct spi_driver st7789_driver_spi_driver = {
 +	.driver = {
-+		.name   = "omni-st7789v",
++		.name   = "st7789v",
 +		/* .of_match_table = of_match_ptr(dt_ids), */
 +		.owner = THIS_MODULE,
 +	},
@@ -1624,17 +1622,17 @@ index 0000000..14371c3
 +MODULE_ALIAS("spi:" SPI_DRIVER_NAME);
 +MODULE_ALIAS("platform:" SPI_DRIVER_NAME);
 +MODULE_ALIAS("spi:st7789v");
-+MODULE_ALIAS("omni-st7789v");
++MODULE_ALIAS(SPI_DRIVER_NAME);
 +
 +MODULE_DESCRIPTION("SPI driver for the ST7789V LCD Controller");
 +MODULE_AUTHOR("Christian Duenki");
 +MODULE_LICENSE("GPL");
-diff --git a/drivers/omni/ili2116.c b/drivers/omni/ili2116.c
+diff --git a/drivers/stromer/ili2116.c b/drivers/stromer/ili2116.c
 new file mode 100644
-index 0000000..8aebb6e
+index 0000000..ae5014c
 --- /dev/null
-+++ b/drivers/omni/ili2116.c
-@@ -0,0 +1,450 @@
++++ b/drivers/stromer/ili2116.c
+@@ -0,0 +1,469 @@
 +#define DEBUG
 +
 +#include <linux/module.h>
@@ -1662,14 +1660,15 @@ index 0000000..8aebb6e
 +#define REG_PROTOCOL_VERSION	0x42
 +#define REG_CALIBRATE		0xcc
 +
-+struct panel_info_finger {
++struct finger {
 +	u8 x_low;
 +	u8 x_high;
 +	u8 y_low;
 +	u8 y_high;
 +} __packed;
 +
-+struct finger {
++struct finger_read {
++	u8 status;
 +	u8 x_high;
 +	u8 x_low;
 +	u8 y_high;
@@ -1678,13 +1677,16 @@ index 0000000..8aebb6e
 +
 +struct touchdata {
 +	u8 status;
-+	struct finger finger[MAX_TOUCHES];
++	struct finger_read finger[MAX_TOUCHES];
 +} __packed;
 +
 +struct panel_info {
-+	struct panel_info_finger finger_max;
++	/* struct panel_info_finger finger_max; */
++	struct finger finger_max;
 +	u8 xchannel_num;
 +	u8 ychannel_num;
++	u8 max_report_points;
++	u8 channel_num;
 +} __packed;
 +
 +struct firmware_version {
@@ -1705,6 +1707,7 @@ index 0000000..8aebb6e
 +	int gpio_pendown;
 +	bool (*get_pendown_state)(struct ili2116 *priv);
 +	unsigned int poll_period;
++	unsigned int max_channels;
 +	struct delayed_work dwork;
 +};
 +
@@ -1735,30 +1738,35 @@ index 0000000..8aebb6e
 +}
 +
 +static void ili2116_report_events(struct input_dev *input,
-+				  const struct touchdata *touchdata)
++								  const struct touchdata *touchdata,
++								  unsigned int num_of_events,
++								  unsigned int num_of_max_events)
 +{
 +	int i;
 +	bool touch;
 +	unsigned int x, y;
-+	const struct finger *finger;
++	const struct finger_read *finger;
 +
-+	for (i = 0; i < MAX_TOUCHES; i++) {
++	for (i = 0; i < num_of_max_events; i++) {
 +		input_mt_slot(input, i);
 +
-+		finger = &touchdata->finger[i];
++		if (i < num_of_events) {
++			finger = &(touchdata->finger)[i];
++			touch = ((finger->status & 0xC0) == 0x80);
++			input_mt_report_slot_state(input, MT_TOOL_FINGER, touch);
++			if (touch) {
++				x = finger->x_low | (finger->x_high << 8);
++				y = finger->y_low | (finger->y_high << 8);
 +
-+		touch = touchdata->status & (1 << i);
-+		input_mt_report_slot_state(input, MT_TOOL_FINGER, touch);
-+		if (touch) {
-+			x = finger->x_low | (finger->x_high << 8);
-+			y = finger->y_low | (finger->y_high << 8);
-+
-+			input_report_abs(input, ABS_MT_POSITION_X, x);
-+			input_report_abs(input, ABS_MT_POSITION_Y, y);
++				input_report_abs(input, ABS_MT_POSITION_X, x);
++				input_report_abs(input, ABS_MT_POSITION_Y, y);
++			}
++		} else {
++			input_mt_report_slot_state(input, MT_TOOL_FINGER, false);
 +		}
++		input_mt_report_pointer_emulation(input, false);
 +	}
 +
-+	input_mt_report_pointer_emulation(input, false);
 +	input_sync(input);
 +}
 +
@@ -1769,6 +1777,7 @@ index 0000000..8aebb6e
 +	struct i2c_client *client = priv->client;
 +	struct touchdata touchdata;
 +	int error;
++	int cnt;
 +
 +	error = ili2116_read_reg(client, REG_TOUCHDATA,
 +				 &touchdata.status, sizeof(touchdata.status));
@@ -1777,20 +1786,26 @@ index 0000000..8aebb6e
 +			"Unable to get touch report, err = %d\n", error);
 +		return;
 +	}
-+	error = ili2116_read_reg(client, REG_TOUCH_REPORT,
-+				 &touchdata.finger[0], (sizeof(touchdata) - 1));
-+	if (error) {
-+		dev_err(&client->dev,
-+			"Unable to get touch report, err = %d\n", error);
-+		return;
++	for (cnt = 0; cnt < touchdata.status; cnt++) {
++		error = ili2116_read_reg(client, REG_TOUCH_REPORT,
++								 &touchdata.finger[cnt], sizeof(struct finger_read));
++		if (error) {
++			dev_err(&client->dev,
++					"Unable to get touch report, err = %d\n", error);
++			return;
++		}
++		if (cnt >= MAX_TOUCHES) {
++			break;
++		}
 +	}
 +
++	ili2116_report_events(priv->input, &touchdata,
++						  touchdata.status, priv->max_channels);
 +
-+	ili2116_report_events(priv->input, &touchdata);
-+
-+	if ((touchdata.status & 0xf3) || priv->get_pendown_state(priv))
++	if ((touchdata.status > 0) || priv->get_pendown_state(priv)) {
 +		schedule_delayed_work(&priv->dwork,
 +				      msecs_to_jiffies(priv->poll_period));
++	}
 +}
 +
 +static irqreturn_t ili2116_irq(int irq, void *irq_data)
@@ -1878,7 +1893,6 @@ index 0000000..8aebb6e
 +	int xmax, ymax;
 +	int error;
 +	int oftree = 0;
-+
 +	dev_dbg(dev, "Probing for ILI2116 I2C Touschreen driver");
 +
 +	if (!pdata) {
@@ -1968,9 +1982,12 @@ index 0000000..8aebb6e
 +	input_set_abs_params(input, ABS_Y, 0, ymax, 0, 0);
 +
 +	/* Multi touch */
-+	input_mt_init_slots(input, MAX_TOUCHES, 0);
++	input_mt_init_slots(input, (unsigned int)panel.max_report_points, 0);
 +	input_set_abs_params(input, ABS_MT_POSITION_X, 0, xmax, 0, 0);
 +	input_set_abs_params(input, ABS_MT_POSITION_Y, 0, ymax, 0, 0);
++
++	/* Add data to private struct */
++	priv->max_channels = panel.max_report_points;
 +
 +	input_set_drvdata(input, priv);
 +	i2c_set_clientdata(client, priv);
@@ -2051,20 +2068,20 @@ index 0000000..8aebb6e
 +static SIMPLE_DEV_PM_OPS(ili2116_i2c_pm,
 +			 ili2116_i2c_suspend, ili2116_i2c_resume);
 +
-+static const struct ili2116_platform_data omni_ili2116 = {
++static const struct ili2116_platform_data stromer_ili2116 = {
 +	.irq_flags = (IRQF_TRIGGER_FALLING | IRQF_ONESHOT),
 +	.poll_period = DEFAULT_POLL_PERIOD,
 +};
 +
 +static const struct i2c_device_id ili2116_i2c_id[] = {
-+	{ .name="omni-ili2116", .driver_data = (long)&omni_ili2116 },
++	{ .name="stromer-ili2116", .driver_data = (long)&stromer_ili2116 },
 +	{ /* sentinel */ }
 +};
 +MODULE_DEVICE_TABLE(i2c, ili2116_i2c_id);
 +
 +#ifdef CONFIG_OF
 +static const struct of_device_id ili2116_of_match[] = {
-+	{ .compatible = "omni-ili2116", .data = &omni_ili2116 },
++	{ .compatible = "stromer-ili2116", .data = &stromer_ili2116 },
 +	{ /* sentinel */ }
 +};
 +MODULE_DEVICE_TABLE(of, ili2116_of_match);
@@ -2072,7 +2089,7 @@ index 0000000..8aebb6e
 +
 +static struct i2c_driver ili2116_ts_driver = {
 +	.driver = {
-+		.name = "omni-ili2116",
++		.name = "stromer-ili2116",
 +		.pm = &ili2116_i2c_pm,
 +	},
 +	.id_table = ili2116_i2c_id,
@@ -2085,11 +2102,11 @@ index 0000000..8aebb6e
 +MODULE_AUTHOR("Christian Duenki <christian.duenki@escatec.com>");
 +MODULE_DESCRIPTION("ILI2116 I2C Touchscreen Driver");
 +MODULE_LICENSE("GPL");
-diff --git a/drivers/omni/ili2116.h b/drivers/omni/ili2116.h
+diff --git a/drivers/stromer/ili2116.h b/drivers/stromer/ili2116.h
 new file mode 100644
 index 0000000..dad4765
 --- /dev/null
-+++ b/drivers/omni/ili2116.h
++++ b/drivers/stromer/ili2116.h
 @@ -0,0 +1,11 @@
 +#ifndef _ILI2116_H
 +#define _ILI2116_H

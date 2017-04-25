@@ -2,21 +2,35 @@ SUMMARY = "Copy file to Root FS"
 DESCRIPTION = "Recipe for copying files from meta-omni layer into root file system"
 LICENSE = "CLOSED"
 
-FILESEXTRAPATHS_append := "${THISDIR}/linux-mainline:"
+FILESEXTRAPATHS_append := "${THISDIR}/services:"
 
-SRC_URI = "file://chip-init \
-		   file://power-lock"
+SRC_URI = "file://gnss.sh \
+		   file://gnss.service \
+		   file://gsm.sh \
+		   file://gsm.service \
+		   file://led.sh \
+		   file://led.service"
+
+inherit systemd
+
+SYSTEMD_SERVICE_${PN} = "gnss.service gsm.service led.service"
+
+REQUIRED_DISTRO_FEATURES = "systemd"
+
+RDEPENDS_copy2rootfs = "bash"
 
 do_install () {
-	install -d ${D}${sysconfdir}/init.d
+	install -d ${D}${sysconfdir}/scripts
+	install -d ${D}${systemd_system_unitdir}
 
-	# Copy chip-init and create a symbol link
-	install -m 0755 ${WORKDIR}/chip-init ${D}${sysconfdir}/init.d/chip-init
-	install -d ${D}${sysconfdir}/rc5.d
-	ln -sf ../init.d/chip-init ${D}${sysconfdir}/rc5.d/S90chip-init
+	install -m 0755 ${WORKDIR}/gnss.sh ${D}${sysconfdir}/scripts/gnss.sh
+	install -m 0644 ${WORKDIR}/gnss.service ${D}${systemd_system_unitdir}/gnss.service
 
-	# Copy power-lock and create a symbol link
-	install -m 0755 ${WORKDIR}/power-lock ${D}${sysconfdir}/init.d/power-lock
-	install -d ${D}${sysconfdir}/rc0.d
-	ln -sf ../init.d/power-lock ${D}${sysconfdir}/rc0.d/K90power-lock
+	install -m 0755 ${WORKDIR}/gsm.sh ${D}${sysconfdir}/scripts/gsm.sh
+	install -m 0644 ${WORKDIR}/gsm.service ${D}${systemd_system_unitdir}/gsm.service
+
+	install -m 0755 ${WORKDIR}/led.sh ${D}${sysconfdir}/scripts/led.sh
+	install -m 0644 ${WORKDIR}/led.service ${D}${systemd_system_unitdir}/led.service
 }
+
+FILES_${PN} += "${systemd_system_unitdir}"

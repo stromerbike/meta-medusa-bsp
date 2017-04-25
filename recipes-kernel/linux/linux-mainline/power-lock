@@ -1,9 +1,0 @@
-#! /bin/bash
-
-NAME=power-lock
-DESC="Set power lock to low"
-
-echo "Power-lock disabled"
-echo "129" > /sys/class/gpio/export
-echo "out" > /sys/class/gpio/gpio129/direction
-echo "0" > /sys/class/gpio/gpio129/value

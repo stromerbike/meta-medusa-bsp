@@ -1,5 +1,5 @@
 diff --git a/arch/arm/dts/imx6ul-phytec-phycore-som.dts b/arch/arm/dts/imx6ul-phytec-phycore-som.dts
-index 65a9365..3d924b8 100644
+index 65a9365..e630336 100644
 --- a/arch/arm/dts/imx6ul-phytec-phycore-som.dts
 +++ b/arch/arm/dts/imx6ul-phytec-phycore-som.dts
 @@ -33,6 +33,50 @@
@@ -53,7 +53,22 @@ index 65a9365..3d924b8 100644
  };
  
  &fec1 {
-@@ -116,70 +160,94 @@
+@@ -90,6 +134,14 @@
+ 	};
+ };
+ 
++&ecspi1  {
++	pinctrl-names = "default";
++	pinctrl-0 = <&pinctrl_ecspi1>;
++	num-cs = <1>;
++	cs-gpios = <&gpio3 26 GPIO_ACTIVE_LOW>;
++	status = "okay";
++};
++
+ &uart1 {
+ 	pinctrl-names = "default";
+ 	pinctrl-0 = <&pinctrl_uart1>;
+@@ -116,70 +168,103 @@
  	};
  };
  
@@ -86,21 +101,6 @@ index 65a9365..3d924b8 100644
 -			>;
 -		};
 +	pinctrl-name = "default";
-+
-+	pinctrl_enet1: enet1grp {
-+		fsl,pins = <
-+			MX6UL_PAD_GPIO1_IO07__ENET1_MDC			0x1b0b0
-+			MX6UL_PAD_GPIO1_IO06__ENET1_MDIO			0x1b0b0
-+			MX6UL_PAD_ENET1_RX_EN__ENET1_RX_EN			0x1b0b0
-+			MX6UL_PAD_ENET1_RX_ER__ENET1_RX_ER			0x1b0b0
-+			MX6UL_PAD_ENET1_RX_DATA0__ENET1_RDATA00	0x1b0b0
-+			MX6UL_PAD_ENET1_RX_DATA1__ENET1_RDATA01	0x1b0b0
-+			MX6UL_PAD_ENET1_TX_EN__ENET1_TX_EN			0x1b0b0
-+			MX6UL_PAD_ENET1_TX_DATA0__ENET1_TDATA00	0x1b0b0
-+			MX6UL_PAD_ENET1_TX_DATA1__ENET1_TDATA01	0x1b0b0
-+			MX6UL_PAD_ENET1_TX_CLK__ENET1_REF_CLK1		0x4001b031
-+		>;
-+	};
  
 -		pinctrl_gpmi_nand: gpminandgrp {
 -			fsl,pins = <
@@ -121,23 +121,18 @@ index 65a9365..3d924b8 100644
 -				MX6UL_PAD_NAND_DATA07__RAWNAND_DATA07	0x0b0b1
 -			>;
 -		};
-+	pinctrl_gpmi_nand: gpminandgrp {
++	pinctrl_enet1: enet1grp {
 +		fsl,pins = <
-+			MX6UL_PAD_NAND_CLE__RAWNAND_CLE			0x0b0b1
-+			MX6UL_PAD_NAND_ALE__RAWNAND_ALE			0x0b0b1
-+			MX6UL_PAD_NAND_WP_B__RAWNAND_WP_B			0x0b0b1
-+			MX6UL_PAD_NAND_READY_B__RAWNAND_READY_B	0x0b000
-+			MX6UL_PAD_NAND_CE0_B__RAWNAND_CE0_B		0x0b0b1
-+			MX6UL_PAD_NAND_RE_B__RAWNAND_RE_B			0x0b0b1
-+			MX6UL_PAD_NAND_WE_B__RAWNAND_WE_B			0x0b0b1
-+			MX6UL_PAD_NAND_DATA00__RAWNAND_DATA00		0x0b0b1
-+			MX6UL_PAD_NAND_DATA01__RAWNAND_DATA01		0x0b0b1
-+			MX6UL_PAD_NAND_DATA02__RAWNAND_DATA02		0x0b0b1
-+			MX6UL_PAD_NAND_DATA03__RAWNAND_DATA03		0x0b0b1
-+			MX6UL_PAD_NAND_DATA04__RAWNAND_DATA04		0x0b0b1
-+			MX6UL_PAD_NAND_DATA05__RAWNAND_DATA05		0x0b0b1
-+			MX6UL_PAD_NAND_DATA06__RAWNAND_DATA06		0x0b0b1
-+			MX6UL_PAD_NAND_DATA07__RAWNAND_DATA07		0x0b0b1
++			MX6UL_PAD_GPIO1_IO07__ENET1_MDC			0x1b0b0
++			MX6UL_PAD_GPIO1_IO06__ENET1_MDIO		0x1b0b0
++			MX6UL_PAD_ENET1_RX_EN__ENET1_RX_EN		0x1b0b0
++			MX6UL_PAD_ENET1_RX_ER__ENET1_RX_ER		0x1b0b0
++			MX6UL_PAD_ENET1_RX_DATA0__ENET1_RDATA00	0x1b0b0
++			MX6UL_PAD_ENET1_RX_DATA1__ENET1_RDATA01	0x1b0b0
++			MX6UL_PAD_ENET1_TX_EN__ENET1_TX_EN		0x1b0b0
++			MX6UL_PAD_ENET1_TX_DATA0__ENET1_TDATA00	0x1b0b0
++			MX6UL_PAD_ENET1_TX_DATA1__ENET1_TDATA01	0x1b0b0
++			MX6UL_PAD_ENET1_TX_CLK__ENET1_REF_CLK1	0x4001b031
 +		>;
 +	};
  
@@ -147,10 +142,23 @@ index 65a9365..3d924b8 100644
 -				MX6UL_PAD_UART4_RX_DATA__I2C1_SDA	0x4001b8b0
 -			>;
 -		};
-+	pinctrl_i2c1: i2cgrp {
++	pinctrl_gpmi_nand: gpminandgrp {
 +		fsl,pins = <
-+			MX6UL_PAD_UART4_TX_DATA__I2C1_SCL	0x4001b8b0
-+			MX6UL_PAD_UART4_RX_DATA__I2C1_SDA	0x4001b8b0
++			MX6UL_PAD_NAND_CLE__RAWNAND_CLE			0x0b0b1
++			MX6UL_PAD_NAND_ALE__RAWNAND_ALE			0x0b0b1
++			MX6UL_PAD_NAND_WP_B__RAWNAND_WP_B		0x0b0b1
++			MX6UL_PAD_NAND_READY_B__RAWNAND_READY_B	0x0b000
++			MX6UL_PAD_NAND_CE0_B__RAWNAND_CE0_B		0x0b0b1
++			MX6UL_PAD_NAND_RE_B__RAWNAND_RE_B		0x0b0b1
++			MX6UL_PAD_NAND_WE_B__RAWNAND_WE_B		0x0b0b1
++			MX6UL_PAD_NAND_DATA00__RAWNAND_DATA00	0x0b0b1
++			MX6UL_PAD_NAND_DATA01__RAWNAND_DATA01	0x0b0b1
++			MX6UL_PAD_NAND_DATA02__RAWNAND_DATA02	0x0b0b1
++			MX6UL_PAD_NAND_DATA03__RAWNAND_DATA03	0x0b0b1
++			MX6UL_PAD_NAND_DATA04__RAWNAND_DATA04	0x0b0b1
++			MX6UL_PAD_NAND_DATA05__RAWNAND_DATA05	0x0b0b1
++			MX6UL_PAD_NAND_DATA06__RAWNAND_DATA06	0x0b0b1
++			MX6UL_PAD_NAND_DATA07__RAWNAND_DATA07	0x0b0b1
 +		>;
 +	};
  
@@ -160,10 +168,10 @@ index 65a9365..3d924b8 100644
 -				MX6UL_PAD_UART1_RX_DATA__UART1_DCE_RX	0x1b0b1
 -			>;
 -		};
-+	pinctrl_uart1: uart1grp {
++	pinctrl_i2c1: i2cgrp {
 +		fsl,pins = <
-+			MX6UL_PAD_UART1_TX_DATA__UART1_DCE_TX	0x1b0b1
-+			MX6UL_PAD_UART1_RX_DATA__UART1_DCE_RX	0x1b0b1
++			MX6UL_PAD_UART4_TX_DATA__I2C1_SCL	0x4001b8b0
++			MX6UL_PAD_UART4_RX_DATA__I2C1_SDA	0x4001b8b0
 +		>;
 +	};
  
@@ -178,6 +186,22 @@ index 65a9365..3d924b8 100644
 -				MX6UL_PAD_UART1_RTS_B__GPIO1_IO19       0x17059 /* SD1 CD */
 -			>;
 -		};
++	pinctrl_ecspi1: ecspi1grp {
++		fsl,pins = <
++			MX6UL_PAD_LCD_DATA20__ECSPI1_SCLK	0x1b0b1
++			MX6UL_PAD_LCD_DATA22__ECSPI1_MOSI	0x1b0b1
++			MX6UL_PAD_LCD_DATA23__ECSPI1_MISO	0x1b0b1
++			MX6UL_PAD_LCD_DATA21__ECSPI1_SS0	0x80000000
++		>;
++	};
++
++	pinctrl_uart1: uart1grp {
++		fsl,pins = <
++			MX6UL_PAD_UART1_TX_DATA__UART1_DCE_TX	0x1b0b1
++			MX6UL_PAD_UART1_RX_DATA__UART1_DCE_RX	0x1b0b1
++		>;
++	};
++
 +	pinctrl_usdhc1: usdhc1grp {
 +		fsl,pins = <
 +			MX6UL_PAD_SD1_CMD__USDHC1_CMD		0x17059

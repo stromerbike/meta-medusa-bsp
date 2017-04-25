@@ -25,14 +25,15 @@
 #define REG_PROTOCOL_VERSION	0x42
 #define REG_CALIBRATE		0xcc
 
-struct panel_info_finger {
+struct finger {
 	u8 x_low;
 	u8 x_high;
 	u8 y_low;
 	u8 y_high;
 } __packed;
 
-struct finger {
+struct finger_read {
+	u8 status;
 	u8 x_high;
 	u8 x_low;
 	u8 y_high;
@@ -41,13 +42,16 @@ struct finger {
 
 struct touchdata {
 	u8 status;
-	struct finger finger[MAX_TOUCHES];
+	struct finger_read finger[MAX_TOUCHES];
 } __packed;
 
 struct panel_info {
-	struct panel_info_finger finger_max;
+	/* struct panel_info_finger finger_max; */
+	struct finger finger_max;
 	u8 xchannel_num;
 	u8 ychannel_num;
+	u8 max_report_points;
+	u8 channel_num;
 } __packed;
 
 struct firmware_version {
@@ -68,6 +72,7 @@ struct ili2116 {
 	int gpio_pendown;
 	bool (*get_pendown_state)(struct ili2116 *priv);
 	unsigned int poll_period;
+	unsigned int max_channels;
 	struct delayed_work dwork;
 };
 
@@ -98,30 +103,35 @@ static int ili2116_read_reg(struct i2c_client *client, u8 reg, void *buf,
 }
 
 static void ili2116_report_events(struct input_dev *input,
-				  const struct touchdata *touchdata)
+								  const struct touchdata *touchdata,
+								  unsigned int num_of_events,
+								  unsigned int num_of_max_events)
 {
 	int i;
 	bool touch;
 	unsigned int x, y;
-	const struct finger *finger;
+	const struct finger_read *finger;
 
-	for (i = 0; i < MAX_TOUCHES; i++) {
+	for (i = 0; i < num_of_max_events; i++) {
 		input_mt_slot(input, i);
 
-		finger = &touchdata->finger[i];
+		if (i < num_of_events) {
+			finger = &(touchdata->finger)[i];
+			touch = ((finger->status & 0xC0) == 0x80);
+			input_mt_report_slot_state(input, MT_TOOL_FINGER, touch);
+			if (touch) {
+				x = finger->x_low | (finger->x_high << 8);
+				y = finger->y_low | (finger->y_high << 8);
 
-		touch = touchdata->status & (1 << i);
-		input_mt_report_slot_state(input, MT_TOOL_FINGER, touch);
-		if (touch) {
-			x = finger->x_low | (finger->x_high << 8);
-			y = finger->y_low | (finger->y_high << 8);
-
-			input_report_abs(input, ABS_MT_POSITION_X, x);
-			input_report_abs(input, ABS_MT_POSITION_Y, y);
+				input_report_abs(input, ABS_MT_POSITION_X, x);
+				input_report_abs(input, ABS_MT_POSITION_Y, y);
+			}
+		} else {
+			input_mt_report_slot_state(input, MT_TOOL_FINGER, false);
 		}
+		input_mt_report_pointer_emulation(input, false);
 	}
 
-	input_mt_report_pointer_emulation(input, false);
 	input_sync(input);
 }
 
@@ -132,6 +142,7 @@ static void ili2116_work(struct work_struct *work)
 	struct i2c_client *client = priv->client;
 	struct touchdata touchdata;
 	int error;
+	int cnt;
 
 	error = ili2116_read_reg(client, REG_TOUCHDATA,
 				 &touchdata.status, sizeof(touchdata.status));
@@ -140,20 +151,26 @@ static void ili2116_work(struct work_struct *work)
 			"Unable to get touch report, err = %d\n", error);
 		return;
 	}
-	error = ili2116_read_reg(client, REG_TOUCH_REPORT,
-				 &touchdata.finger[0], (sizeof(touchdata) - 1));
-	if (error) {
-		dev_err(&client->dev,
-			"Unable to get touch report, err = %d\n", error);
-		return;
+	for (cnt = 0; cnt < touchdata.status; cnt++) {
+		error = ili2116_read_reg(client, REG_TOUCH_REPORT,
+								 &touchdata.finger[cnt], sizeof(struct finger_read));
+		if (error) {
+			dev_err(&client->dev,
+					"Unable to get touch report, err = %d\n", error);
+			return;
+		}
+		if (cnt >= MAX_TOUCHES) {
+			break;
+		}
 	}
 
+	ili2116_report_events(priv->input, &touchdata,
+						  touchdata.status, priv->max_channels);
 
-	ili2116_report_events(priv->input, &touchdata);
-
-	if ((touchdata.status & 0xf3) || priv->get_pendown_state(priv))
+	if ((touchdata.status > 0) || priv->get_pendown_state(priv)) {
 		schedule_delayed_work(&priv->dwork,
 				      msecs_to_jiffies(priv->poll_period));
+	}
 }
 
 static irqreturn_t ili2116_irq(int irq, void *irq_data)
@@ -330,9 +347,12 @@ static int ili2116_i2c_probe(struct i2c_client *client,
 	input_set_abs_params(input, ABS_Y, 0, ymax, 0, 0);
 
 	/* Multi touch */
-	input_mt_init_slots(input, MAX_TOUCHES, 0);
+	input_mt_init_slots(input, (unsigned int)panel.max_report_points, 0);
 	input_set_abs_params(input, ABS_MT_POSITION_X, 0, xmax, 0, 0);
 	input_set_abs_params(input, ABS_MT_POSITION_Y, 0, ymax, 0, 0);
+
+	/* Add data to private struct */
+	priv->max_channels = panel.max_report_points;
 
 	input_set_drvdata(input, priv);
 	i2c_set_clientdata(client, priv);
@@ -413,20 +433,20 @@ static int __maybe_unused ili2116_i2c_resume(struct device *dev)
 static SIMPLE_DEV_PM_OPS(ili2116_i2c_pm,
 			 ili2116_i2c_suspend, ili2116_i2c_resume);
 
-static const struct ili2116_platform_data omni_ili2116 = {
+static const struct ili2116_platform_data stromer_ili2116 = {
 	.irq_flags = (IRQF_TRIGGER_FALLING | IRQF_ONESHOT),
 	.poll_period = DEFAULT_POLL_PERIOD,
 };
 
 static const struct i2c_device_id ili2116_i2c_id[] = {
-	{ .name="omni-ili2116", .driver_data = (long)&omni_ili2116 },
+	{ .name="stromer-ili2116", .driver_data = (long)&stromer_ili2116 },
 	{ /* sentinel */ }
 };
 MODULE_DEVICE_TABLE(i2c, ili2116_i2c_id);
 
 #ifdef CONFIG_OF
 static const struct of_device_id ili2116_of_match[] = {
-	{ .compatible = "omni-ili2116", .data = &omni_ili2116 },
+	{ .compatible = "stromer-ili2116", .data = &stromer_ili2116 },
 	{ /* sentinel */ }
 };
 MODULE_DEVICE_TABLE(of, ili2116_of_match);
@@ -434,7 +454,7 @@ MODULE_DEVICE_TABLE(of, ili2116_of_match);
 
 static struct i2c_driver ili2116_ts_driver = {
 	.driver = {
-		.name = "omni-ili2116",
+		.name = "stromer-ili2116",
 		.pm = &ili2116_i2c_pm,
 	},
 	.id_table = ili2116_i2c_id,

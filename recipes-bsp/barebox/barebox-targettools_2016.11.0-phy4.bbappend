@@ -1,2 +1,2 @@
 
-COMPATIBLE_MACHINE = "imx6ul-omni"
+COMPATIBLE_MACHINE = "imx6ul-medusa"

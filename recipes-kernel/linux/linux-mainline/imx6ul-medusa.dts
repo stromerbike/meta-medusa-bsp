@@ -21,19 +21,6 @@
 		reg = <0x80000000 0x8000000>;
 	};
 
-	gpio_leds_som: somleds {
-		pinctrl-names = "default";
-		pinctrl-0 = <&pinctrl_gpioleds_som>;
-		compatible = "gpio-leds";
-		status = "okay";
-
-		som_green {
-			label = "phycore:green";
-			gpios = <&gpio5 4 GPIO_ACTIVE_HIGH>;
-			linux,default-trigger = "heartbeat";
-		};
-	};
-
 	regulators {
 		compatible = "simple-bus";
 		#address-cells = <1>;
@@ -95,6 +82,41 @@
 		pwms = <&pwm6 0 5000000>;
 		pwm-names = "frontbase";
 		status = "okay";
+	};
+
+	/* Blinking led */
+	gpio_leds_som: somleds {
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_gpioleds_som>;
+		compatible = "gpio-leds";
+		status = "okay";
+
+		som_green {
+			label = "phycore:green";
+			gpios = <&gpio5 4 GPIO_ACTIVE_HIGH>;
+			linux,default-trigger = "heartbeat";
+		};
+	};
+
+	/* Power lock pin */
+	gpio-poweroff {
+		compatible = "gpio-poweroff";
+		gpios = <&gpio5 1 GPIO_ACTIVE_LOW>;
+	};
+
+
+	/* On Switch (On/Menu) */
+	gpio-keys {
+		compatible = "gpio-keys";
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_gpio_keys>;
+
+		on_switch {
+			   label = "on_switch";
+			   gpios = <&gpio5 2 GPIO_ACTIVE_LOW>;
+			   linux,code = <KEY_BACK>;
+			   wakeup-source;
+		};
 	};
 };
 
@@ -159,7 +181,7 @@
 
 	/* Touch controller */
 	ili2116@41 {
-		compatible = "omni-ili2116";
+		compatible = "stromer-ili2116";
 		reg = <0x41>;
 		pinctrl-names = "default";
 		pinctrl-0 = <&pinctrl_ili2116>;
@@ -278,8 +300,7 @@
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_ecspi1>;
 	num-cs = <1>;
-	/* fsl,spi-num-chipselects = <1>; */
-	cs-gpios = <0>; /*<&gpio3 26 GPIO_ACTIVE_LOW>; */
+	cs-gpios = <0>;
 	status = "okay";
 };
 
@@ -317,9 +338,9 @@
 };
 
 /* CAN */
-&can1 {
+&can2 {
 	pinctrl-names = "default";
-	pinctrl-0 = <&pinctrl_flexcan1>;
+	pinctrl-0 = <&pinctrl_flexcan2>;
 	status = "okay";
 };
 
@@ -378,7 +399,7 @@
 /* ADC */
 &adc1 {
 	pinctrl-names = "default";
-	pinctrl-0 = <&pinctrl_adc1>;
+	/* Driver utilizes ADC pins from hoggrp automatically */
 	vref-supply = <&reg_adc_3v3>;
 	status = "okay";
 };
@@ -387,31 +408,41 @@
 	pinctrl-name = "default";
 	pinctrl-0 = <&pinctrl_hog>;
 
-	/* Input/Output GPIO */
+	/* Input, Output and ADC GPIO */
 	pinctrl_hog: hoggrp {
 		fsl,pins = <
-			 /* Din */
-			 MX6UL_PAD_GPIO1_IO04__GPIO1_IO04	0x79 /* Break 1 */
-			 MX6UL_PAD_GPIO1_IO03__GPIO1_IO03	0x79 /* Break 2 */
-			 MX6UL_PAD_SNVS_TAMPER3__GPIO5_IO03	0x79 /* Horn */
-			 MX6UL_PAD_SNVS_TAMPER2__GPIO5_IO02	0x79 /* On switch */
-			 /* Dout */
-			 MX6UL_PAD_SNVS_TAMPER1__GPIO5_IO01	0x79 /* Power-lock */
-			 MX6UL_PAD_CSI_DATA03__GPIO4_IO24	0x79 /* BLE reset */
-			 MX6UL_PAD_CSI_DATA04__GPIO4_IO25	0x79 /* GNSS 3Dfix */
-			 MX6UL_PAD_CSI_DATA05__GPIO4_IO26	0x79 /* GNSS sleep ctrl */
-			 MX6UL_PAD_CSI_DATA06__GPIO4_IO27	0x79 /* GNSS force on */
-			 MX6UL_PAD_CSI_DATA07__GPIO4_IO28	0x79 /* GNSS reset */
-			 /* MX6UL_PAD_SNVS_TAMPER1__GPIO5_IO01	0x79 */
-			 MX6UL_PAD_SNVS_TAMPER0__GPIO5_IO00	0x79 /* GSM reset */
-			 /* Possible different versions of the board caused different pin for GSM Power on */
-			 /* MX6UL_PAD_SNVS_TAMPER4__GPIO5_IO04	0x79 */
-			 MX6UL_PAD_GPIO1_IO02__GPIO1_IO02	0x79
- 			 /* Possible different versions	of the board caused different pin for CAN eanble */
-			 /* In case of pin change, can regulator must be also modified */
-			 /* MX6UL_PAD_SNVS_TAMPER9__GPIO5_IO09	0x79 */
-			 MX6UL_PAD_NAND_CE1_B__GPIO4_IO14	0x79
+			MX6UL_PAD_GPIO1_IO00__GPIO1_IO00	0x79 /* Cadence */
+			MX6UL_PAD_GPIO1_IO01__GPIO1_IO01	0xb0 /* Horn */
+			MX6UL_PAD_GPIO1_IO03__GPIO1_IO03	0xb0 /* Break 2 */
+			MX6UL_PAD_GPIO1_IO04__GPIO1_IO04	0xb0 /* Break 1 */
+			MX6UL_PAD_GPIO1_IO05__GPIO1_IO05	0xb0 /* AN_mux */
+			MX6UL_PAD_GPIO1_IO09__GPIO1_IO09	0xb0 /* TMM */
+			/* Possible different versions	of the board caused different pin for CAN eanble */
+			/* MX6UL_PAD_SNVS_TAMPER9__GPIO5_IO09	0x79 */
+			MX6UL_PAD_NAND_CE1_B__GPIO4_IO14	0x79 /* CAN sleep */
+
+			/* Din */
+			/* Dout */
+			MX6UL_PAD_SD1_CLK__GPIO2_IO17		0x79 /* Brake Pull-Up/Pull-Down */
+			MX6UL_PAD_SNVS_TAMPER3__GPIO5_IO03	0x79 /* Horn Pull-Up/Pull-Down */
+			MX6UL_PAD_CSI_DATA03__GPIO4_IO24	0x79 /* BLE reset */
+			MX6UL_PAD_CSI_DATA04__GPIO4_IO25	0x79 /* GNSS 3Dfix */
+			MX6UL_PAD_CSI_DATA05__GPIO4_IO26	0x79 /* GNSS sleep ctrl */
+			MX6UL_PAD_CSI_DATA06__GPIO4_IO27	0x79 /* GNSS force on */
+			MX6UL_PAD_CSI_DATA07__GPIO4_IO28	0x79 /* GNSS reset */
+			/* MX6UL_PAD_SNVS_TAMPER1__GPIO5_IO01	0x79 */
+			MX6UL_PAD_SNVS_TAMPER0__GPIO5_IO00	0x79 /* GSM reset */
+			/* Possible different versions of the board caused different pin for GSM Power on */
+			/* MX6UL_PAD_SNVS_TAMPER4__GPIO5_IO04	0x79 */
+			MX6UL_PAD_GPIO1_IO02__GPIO1_IO02	0x79
 		 >;
+	};
+
+	/* On Switch (On/Menu) */
+	pinctrl_gpio_keys: gpiokeysgrp {
+		fsl,pins = <
+			MX6UL_PAD_SNVS_TAMPER2__GPIO5_IO02	0x79
+		>;
 	};
 
 	/* NAND */
@@ -543,17 +574,17 @@
 	};
 
 	/* CAN */
-	pinctrl_flexcan1: flexcan1 {
+	pinctrl_flexcan2: flexcan2grp {
 		fsl,pins = <
-			MX6UL_PAD_SD1_DATA1__FLEXCAN1_RX	0x0b0b0
-			MX6UL_PAD_SD1_DATA0__FLEXCAN1_TX	0x0b0b0
+			MX6UL_PAD_SD1_DATA2__FLEXCAN2_TX	0x0b0b0
+			MX6UL_PAD_SD1_DATA3__FLEXCAN2_RX	0x0b0b0
 		>;
 	};
 
 	/* USB1 */
 	pinctrl_usb_otg1_id: usbotg1idgrp {
 		fsl,pins = <
-			MX6UL_PAD_GPIO1_IO00__ANATOP_OTG1_ID	0x17059
+			MX6UL_PAD_SD1_DATA0__ANATOP_OTG1_ID	0x17059
 		>;
 	};
 
@@ -585,14 +616,6 @@
 	pinctrl_pwm6: pwm6grp {
 		fsl,pins = <
 			MX6UL_PAD_LCD_DATA19__PWM6_OUT	0x1b0b0
-		>;
-	};
-
-	/* ADC */
-	pinctrl_adc1: adc1grp {
-		fsl,pins = <
-			MX6UL_PAD_GPIO1_IO05__GPIO1_IO05	0xb0 /* AN_mux */
-			MX6UL_PAD_GPIO1_IO09__GPIO1_IO09	0xb0 /* TMM */
 		>;
 	};
 

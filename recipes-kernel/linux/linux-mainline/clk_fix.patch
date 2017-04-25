@@ -1,0 +1,33 @@
+diff --git a/arch/arm/mach-imx/mach-imx6ul.c b/arch/arm/mach-imx/mach-imx6ul.c
+index 6bb7d9c..ee474c5 100644
+--- a/arch/arm/mach-imx/mach-imx6ul.c
++++ b/arch/arm/mach-imx/mach-imx6ul.c
+@@ -10,6 +10,7 @@
+ #include <linux/mfd/syscon/imx6q-iomuxc-gpr.h>
+ #include <linux/micrel_phy.h>
+ #include <linux/of_platform.h>
++#include <linux/of_address.h>
+ #include <linux/phy.h>
+ #include <linux/regmap.h>
+ #include <asm/mach/arch.h>
+@@ -59,6 +60,8 @@ static inline void imx6ul_enet_init(void)
+ static void __init imx6ul_init_machine(void)
+ {
+ 	struct device *parent;
++	void __iomem *iomux;
++	struct device_node *np;
+ 
+ 	parent = imx_soc_device_init();
+ 	if (parent == NULL)
+@@ -68,6 +71,11 @@ static void __init imx6ul_init_machine(void)
+ 	imx6ul_enet_init();
+ 	imx_anatop_init();
+ 	imx6ul_pm_init();
++
++	np = of_find_compatible_node(NULL,NULL,"fsl,imx6ul-iomuxc");
++	iomux = of_iomap(np, 0);
++	writel_relaxed(0x2,iomux+0x650);
++	writel_relaxed(0x5,iomux+0x1C0);
+ }
+ 
+ static void __init imx6ul_init_irq(void)

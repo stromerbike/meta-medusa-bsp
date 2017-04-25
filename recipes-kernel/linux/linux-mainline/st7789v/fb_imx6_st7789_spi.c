@@ -123,7 +123,7 @@ void st7789_write_register(int len, ...)
 }
 
 /**
- * @brief Transmit spi messages to the omni-display
+ * @brief Transmit spi messages to the stromer-display
  *
  * @param buf[in] Data to be sent
  * @param len[in] Length of message
@@ -382,8 +382,8 @@ int st7789_probe_spi(struct spi_device *spi)
 		return PTR_ERR(spi);
 	}
 
-	/* dev_dbg(spi, "Probing OMNI-ST7789v device"); */
-	pr_debug("Probing OMNI-ST7789v device");
+	/* dev_dbg(spi, "Probing STROMER-ST7789v device"); */
+	pr_debug("Probing STROMER-ST7789v device");
 
 	/* store spi device locally */
 	disp.spi = spi;
@@ -430,14 +430,14 @@ int st7789_remove_spi(struct spi_device *spi)
 }
 
 static const struct of_device_id dt_ids[] = {
-	{ .compatible = "omni-st7789v" },
+	{ .compatible = "st7789v" },
 	{ /* sentinel */ },
 };
 MODULE_DEVICE_TABLE(of, dt_ids);
 
 static struct spi_driver st7789_driver_spi_driver = {
 	.driver = {
-		.name   = "omni-st7789v",
+		.name   = "st7789v",
 		/* .of_match_table = of_match_ptr(dt_ids), */
 		.owner = THIS_MODULE,
 	},
@@ -465,7 +465,7 @@ module_exit(st7789_driver_module_exit);
 MODULE_ALIAS("spi:" SPI_DRIVER_NAME);
 MODULE_ALIAS("platform:" SPI_DRIVER_NAME);
 MODULE_ALIAS("spi:st7789v");
-MODULE_ALIAS("omni-st7789v");
+MODULE_ALIAS(SPI_DRIVER_NAME);
 
 MODULE_DESCRIPTION("SPI driver for the ST7789V LCD Controller");
 MODULE_AUTHOR("Christian Duenki");

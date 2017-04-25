@@ -9,7 +9,7 @@
 #include <linux/platform_device.h>
 
 /** SPI driver name */
-#define SPI_DRIVER_NAME "omni-st7789v"
+#define SPI_DRIVER_NAME "st7789v"
 
 /** Perform SPI init sequence */
 #define DO_SPI_INIT_SEQUENCE
@@ -18,7 +18,7 @@
 /** Register SPI device */
 #define DO_REGISTER_SPI_DEVICE
 /** Do panning in lcdif driver */
-#define DO_LCDIF_PAN
+//#define DO_LCDIF_PAN
 
 /** Reset pin responsibility */
 /* define RESET_DONE_BY_LCDIF */
