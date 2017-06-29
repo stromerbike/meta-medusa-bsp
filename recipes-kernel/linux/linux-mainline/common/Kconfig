@@ -1,17 +1,23 @@
 
-menuconfig OMNIDISPTOUCH
+menuconfig STROMER_DP
 	tristate "myStromer SUI - Display und Touch driver"
 	---help---
 	  Framebuffer driver for the IMX6UL LCDIF periphery in combination
 	  with the ST7789 based display
 
-if OMNIDISPTOUCH
+if STROMER_DP
 
 config ILI2116_TOUCH
 	tristate "ILI2116 touch controller driver"
 	default m
 	help
 	  ILI2116 Touch controller driver using I2C interfaces
+
+config ST1633_TOUCH
+	tristate "ST1633 touch controller driver"
+	default m
+	help
+	  ST1633 Touch controller driver using I2C interfaces
 
 config IMX6UL_LCDIF_ST7789
 	tristate "LCDIF peripheral driver for a ST7789 display"
@@ -28,4 +34,4 @@ config ST7789_SPI
 	  SPI driver for the ST7789 3-wire interface (1. SCL, 2. CS, 3. MISO/MOSI)
 	  providing functions to inititalize the display for RGB interface
 
-endif # OMNIDISPTOUCH
+endif #STROMER_DP

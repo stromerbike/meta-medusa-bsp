@@ -1,0 +1,11 @@
+[Unit]
+Description=lsm6dsl
+
+[Service]
+Type=oneshot
+ExecStart=/sbin/modprobe st_lsm6dsx_i2c
+ExecStop=/sbin/rmmod st_lsm6dsx_i2c
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

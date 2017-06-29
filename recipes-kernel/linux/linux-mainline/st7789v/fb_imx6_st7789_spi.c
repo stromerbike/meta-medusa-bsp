@@ -243,8 +243,8 @@ int st7789_init_display(void)
 	 */
 	st7789_write_reg(GCTRL, 0x35);
 
-	/* VCOM = 1.175 V */
-	st7789_write_reg(VCOMS, 0x2B);
+	/* VCOM = 1.425 V */
+	st7789_write_reg(VCOMS, 0x35);
 
 	/* LCMCTRL */
 	st7789_write_reg(LCMCTRL, 0x2C);
@@ -256,10 +256,10 @@ int st7789_init_display(void)
 	st7789_write_reg(VDVVRHEN, 0x01);
 
 	/*
-	 * VAP =  4.1V + (VCOM + VCOM offset + 0.5 * VDV)
-	 * VAN = -4.1V + (VCOM + VCOM offset + 0.5 * VDV)
+	 * VAP =  4.4V + (VCOM + VCOM offset + 0.5 * VDV)
+	 * VAN = -4.4V + (VCOM + VCOM offset + 0.5 * VDV)
 	 */
-	st7789_write_reg(VRHS, 0x20);
+	st7789_write_reg(VRHS, 0x11);
 
 	/* VDV = 0V */
 	st7789_write_reg(VDVS, 0x20);
@@ -275,14 +275,12 @@ int st7789_init_display(void)
 	st7789_write_reg(PWCTRL1, 0xA4, 0xA1);
 
 	/* Positive voltage gamma control */
-	st7789_write_reg(PVGAMCTRL, 0xD0, 0xCA, 0xE0, 0x08, 0x09, 0x07, 0x2D, 0x3B,
-					 0x3D, 0x34, 0x0A, 0x0A, 0x1B, 0x28);
+	st7789_write_reg(PVGAMCTRL, 0xD0, 0x00, 0x06, 0x09, 0x0b, 0x2a, 0x3c, 0x55,
+					 0x4b, 0x08, 0x16, 0x14, 0x19, 0x20);
 
 	/* Negative voltage gamma control */
-	st7789_write_reg(NVGAMCTRL, 0xD0, 0xCA, 0x0F, 0x08, 0x08, 0x07, 0x2E, 0x5C,
-					 0X40, 0x34, 0x09, 0x0B, 0x1B, 0x28);
-
-	/* st7789_write_reg(MIPI_DCS_ENTER_INVERT_MODE); */
+	st7789_write_reg(NVGAMCTRL, 0xD0, 0x00, 0x06, 0x09, 0x0b, 0x29, 0x36, 0x54,
+					 0x4b, 0x0d, 0x16, 0x14, 0x21, 0x20);
 
 	/* RAM control */
 	st7789_write_reg(RAMCTRL, 0x11, 0x00, 0x00);
@@ -291,15 +289,13 @@ int st7789_init_display(void)
 	st7789_write_reg(RGBCTRL, 0x40, 0x04, 0x0A);
 
 	/* set pixel format to RGB-565 */
-	st7789_write_reg(MIPI_DCS_SET_PIXEL_FORMAT, 0x55);
+	st7789_write_reg(MIPI_DCS_SET_PIXEL_FORMAT, 0x55); //<-- 0x50 proposed?
 
 	/* Frame rate control */
 	st7789_write_reg(MIPI_DCS_SET_COLUMN_ADDRESS, 0x00, 0x00, 0x00, 0xEF);
-	/* st7789_write_reg(MIPI_DCS_SET_COLUMN_ADDRESS, 0x00, 0x00, 0x01, 0x3F); */
 
 	/* Display function control */
 	st7789_write_reg(MIPI_DCS_SET_PAGE_ADDRESS, 0x00, 0x00, 0x01, 0x3F);
-	/* st7789_write_reg(MIPI_DCS_SET_PAGE_ADDRESS, 0x00, 0x00, 0x00, 0xEF); */
 
 	/* Display on */
 	st7789_write_reg(MIPI_DCS_SET_DISPLAY_ON);

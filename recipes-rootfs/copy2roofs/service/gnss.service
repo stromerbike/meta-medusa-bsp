@@ -1,0 +1,11 @@
+[Unit]
+Description=gnss
+
+[Service]
+Type=oneshot
+ExecStart=/etc/scripts/gnss.sh start
+ExecStop=/etc/scripts/gnss.sh stop
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

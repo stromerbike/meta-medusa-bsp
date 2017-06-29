@@ -783,7 +783,7 @@ static int mxsfb_init_fbinfo(struct mxsfb_info *host,
 	var->vmode = FB_VMODE_NONINTERLACED;
 
 	/* Memory allocation for framebuffer */
-	fb_size = SZ_2M;
+	fb_size = ((var->xres * var->yres) / 8) * 3;
 	fb_virt = alloc_pages_exact(fb_size, GFP_DMA);
 	if (!fb_virt)
 		return -ENOMEM;

@@ -189,11 +189,24 @@
 		interrupts = <30 IRQ_TYPE_EDGE_FALLING>;
 		pendown-gpio = <&gpio1 30 GPIO_ACTIVE_HIGH>;
 		wakeup-source;
+		status = "disabled";
+	};
+
+	/* Touch controller */
+	st1633@55 {
+		compatible = "stromer-st1633";
+		reg = <0x55>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_st1633>;
+		interrupt-parent = <&gpio1>;
+		interrupts = <30 IRQ_TYPE_EDGE_FALLING>;
+		pendown-gpio = <&gpio1 30 GPIO_ACTIVE_HIGH>;
+		wakeup-source;
 		status = "okay";
 	};
 
 	/* EEPROM memory address */
-	eeprom@52 {
+	eeprom: eeprom@52 {
 		compatible = "cat,24c32";
 		reg = <0x52>;
 	};
@@ -296,7 +309,7 @@
 };
 
 /* SPI - LCD */
-&ecspi1  {
+&ecspi1 {
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_ecspi1>;
 	num-cs = <1>;
@@ -420,13 +433,10 @@
 			/* Possible different versions	of the board caused different pin for CAN eanble */
 			/* MX6UL_PAD_SNVS_TAMPER9__GPIO5_IO09	0x79 */
 			MX6UL_PAD_NAND_CE1_B__GPIO4_IO14	0x79 /* CAN sleep */
-
-			/* Din */
-			/* Dout */
 			MX6UL_PAD_SD1_CLK__GPIO2_IO17		0x79 /* Brake Pull-Up/Pull-Down */
 			MX6UL_PAD_SNVS_TAMPER3__GPIO5_IO03	0x79 /* Horn Pull-Up/Pull-Down */
-			MX6UL_PAD_CSI_DATA03__GPIO4_IO24	0x79 /* BLE reset */
-			MX6UL_PAD_CSI_DATA04__GPIO4_IO25	0x79 /* GNSS 3Dfix */
+			MX6UL_PAD_CSI_DATA03__GPIO4_IO24	0x79 /* BLE nSHUTD */
+			MX6UL_PAD_CSI_DATA04__GPIO4_IO25	0x79 /* GNSS PPS */
 			MX6UL_PAD_CSI_DATA05__GPIO4_IO26	0x79 /* GNSS sleep ctrl */
 			MX6UL_PAD_CSI_DATA06__GPIO4_IO27	0x79 /* GNSS force on */
 			MX6UL_PAD_CSI_DATA07__GPIO4_IO28	0x79 /* GNSS reset */
@@ -525,6 +535,13 @@
 
 	/* Touch and SOM EEPROM */
 	pinctrl_ili2116: ili2116grp {
+		/* Touch interrupt and reset */
+		fsl,pins = <
+			MX6UL_PAD_UART5_TX_DATA__GPIO1_IO30	0x10000
+		>;
+	};
+
+	pinctrl_st1633: st1633grp {
 		/* Touch interrupt and reset */
 		fsl,pins = <
 			MX6UL_PAD_UART5_TX_DATA__GPIO1_IO30	0x10000
