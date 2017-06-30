@@ -19,10 +19,8 @@ LICENCE = "MIT"
 IMAGE_INSTALL_append = " barebox dt-utils-barebox-state kernel-image kernel-devicetree \
 						 minicom lrzsz systemd-analyze bluez-hcidump \
 						 usbutils copy2rootfs zile i2c-tools \
-						 fbtest evtest protobuf sqlite3 gtest can-utils \
-						 htop nano util-linux vim \
-						 wvdial  \
-						 openssh"
+						 fbtest evtest gtest can-utils \
+						 htop nano wvdial openssh"
 
 # Added packets:
 # barebox - bootloader
