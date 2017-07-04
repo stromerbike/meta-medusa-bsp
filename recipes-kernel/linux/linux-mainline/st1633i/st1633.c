@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2017 Christian Duenki, Escatec Switzerland AG
+ * christian.duenki@escatec.com
  *
  * This code is based on:
  * drivers/input/touchscreen/sitronix_i2c_touch.c
@@ -21,6 +22,9 @@
 #include "st1633.h"
 #include <linux/i2c.h>
 #include <linux/input.h>
+#ifdef SITRONIX_SUPPORT_MT_SLOT
+ #include <linux/input/mt.h>
+#endif /* SITRONIX_SUPPORT_MT_SLOT */
 #include <linux/interrupt.h>
 #include <linux/slab.h>
 #include <linux/gpio.h>
@@ -34,7 +38,7 @@
 #define DRIVER_DATE             "20170626"
 #define DRIVER_MAJOR            2
 #define DRIVER_MINOR         	9
-#define DRIVER_PATCHLEVEL       2
+#define DRIVER_PATCHLEVEL       24
 
 #define IRQF_DISABLED           0
 
@@ -76,10 +80,15 @@ struct sitronix_AA_key sitronix_key_array[SITRONIX_NUMBER_TOUCH_KEY] = {
 #endif /* SITRONIX_TOUCH_KEY */
 
 struct sitronix_xy_data_s {
-	uint8_t y_h:3;
-	uint8_t reserved:1;
-	uint8_t x_h:3;
-	uint8_t valid:1;
+	union {
+		struct {
+			uint8_t y_h:3;
+			uint8_t reserved:1;
+			uint8_t x_h:3;
+			uint8_t valid:1;
+		} fields;
+		uint8_t byte;
+	} xy_info;
 	uint8_t x_l;
 	uint8_t y_l;
 	uint8_t z;
@@ -92,8 +101,10 @@ struct stx_report_data_s {
 	struct sitronix_xy_data_s xy_data[SITRONIX_MAX_SUPPORTED_POINT];
 };
 
+/**
+ * Struct containing all relevant data to implement touch function
+ */
 struct sitronix_ts_data_s {
-	uint16_t addr;
 	struct i2c_client *client;
 	struct input_dev *input_dev;
 #if defined(SITRONIX_SENSOR_KEY) || defined (SITRONIX_TOUCH_KEY)
@@ -113,18 +124,33 @@ struct sitronix_ts_data_s {
 	uint8_t max_touches;
 	uint8_t touch_protocol_type;
 	uint8_t pixel_length;
+	uint8_t chip_id;
+	uint8_t Num_X;
+	uint8_t Num_Y;
 	int suspend_state;
 	int irq_gpio;
 };
 
 static int i2cErrorCount = 0;
 
-static MTD_STRUCTURE sitronix_ts_gMTDPreStructure[SITRONIX_MAX_SUPPORTED_POINT]={{0}};
-
 static struct sitronix_ts_data_s *sitronix_ts_gpts = NULL;
 static int sitronix_ts_irq_on = 0;
-static int sitronix_invert_x = 0;   /* Optionally invert X axis value */
-static int sitronix_invert_y = 0;   /* Optionally invert Y axis value */
+
+/**
+ * @brief Used to report a pen down event
+ * @param[out] input_dev Input device to send the event
+ * @param[in]  id        Id of the event
+ * @param[in]  x         X address
+ * @param[in]  y         Y address
+ */
+static inline void sitronix_ts_pen_down(struct input_dev *input_dev, int id, u16 x, u16 y);
+
+/**
+ * @brief Used to report a pen up event
+ * @param[out] input_dev Input device to send the event
+ * @param[in]  id        Id of the event
+ */
+static inline void sitronix_ts_pen_up(struct input_dev *input_dev, int id);
 
 /**
  * @brief Local function to write data to i2c slave
@@ -136,124 +162,171 @@ static int sitronix_invert_y = 0;   /* Optionally invert Y axis value */
 static int sitronix_i2c_write_bytes(struct i2c_client *client, u8 *txbuf, int len);
 
 /**
- * @brief Local function to write data to i2c slave
+ * @brief Local function to read data from i2c slave
  * @param[in,out] client I2C client data
- * @param[in] txbuf      Output data buffer
+ * @param[in] addr       Address to read data from slave
+ * @param[in] rxbuf      Input data buffer
  * @param[in] len        Data length
  * @return Error code
  */
-static int sitronix_i2c_write_bytes(struct i2c_client *client, u8 *txbuf, int len);
+static int sitronix_i2c_read_bytes(struct i2c_client *client, u8 addr, u8 *rxbuf, int len);
 
+/**
+ * @brief Reading out touch controller firmware revision
+ * @param[in,out] ts Internal touch data struct
+ * @return Error code
+ */
 static int sitronix_get_fw_revision(struct sitronix_ts_data_s *ts)
 {
 	int ret = 0;
 	uint8_t buffer[4];
 
-	buffer[0] = FIRMWARE_REVISION_3;
-	ret = i2c_master_send(ts->client, buffer, 1);
-	if (ret < 0){
-		printk("send fw revision command error (%d)\n", ret);
-		return ret;
-	}
-	ret = i2c_master_recv(ts->client, buffer, 4);
-	if (ret < 0){
+	ret = sitronix_i2c_read_bytes(ts->client, FIRMWARE_REVISION_3, buffer, 4);
+	if (ret < 0) {
 		printk("read fw revision error (%d)\n", ret);
 		return ret;
-	}else{
+	} else {
 		memcpy(ts->fw_revision, buffer, 4);
 		printk("fw revision (hex) = %x %x %x %x\n", buffer[0], buffer[1], buffer[2], buffer[3]);
 	}
+
+	ret = sitronix_i2c_read_bytes(ts->client, FIRMWARE_VERSION, buffer, 1);
+	if (ret < 0) {
+		printk("read fw version error (%d)\n", ret);
+		return ret;
+	} else {
+		printk("fw version (hex) = %x\n", buffer[0]);
+	}
+
 	return 0;
 }
+
+/**
+ * @brief Reading out Chip ID
+ * @param[in,out] ts Internal touch data struct
+ * @return Error code
+ */
+static int sitronix_ts_get_chip_id(struct sitronix_ts_data_s *ts)
+{
+	int ret = 0;
+	uint8_t buffer[3];
+
+	DbgMsg("%s\n", __FUNCTION__);
+
+	ret = sitronix_i2c_read_bytes(ts->client, CHIP_ID, buffer, 3);
+	if (ret < 0) {
+		printk("read Chip ID error (%d)\n", ret);
+		return ret;
+	} else {
+		if (buffer[0] == 0) {
+			if (buffer[1] + buffer[2] > 32) {
+				ts->chip_id = 2;
+			} else {
+				ts->chip_id = 0;
+			}
+		} else {
+			ts->chip_id = buffer[0];
+		}
+		ts->Num_X = buffer[1];
+		ts->Num_Y = buffer[2];
+		printk("Chip ID = %d\n", ts->chip_id);
+		printk("Num_X = %d\n", ts->Num_X);
+		printk("Num_Y = %d\n", ts->Num_Y);
+	}
+
+	return 0;
+}
+
+/**
+ * @brief Reading out maximum allowed touches
+ * @param[in,out] ts Internal touch data struct
+ * @return Error code
+ */
 static int sitronix_get_max_touches(struct sitronix_ts_data_s *ts)
 {
 	int ret = 0;
 	uint8_t buffer[1];
 
-
-	buffer[0] = MAX_NUM_TOUCHES;
-	ret = i2c_master_send(ts->client, buffer, 1);
-	if (ret < 0) {
-		printk("send max touches command error (%d)\n", ret);
-		return ret;
-	}
-
-	ret = i2c_master_recv(ts->client, buffer, 1);
+	ret = sitronix_i2c_read_bytes(ts->client, MAX_NUM_TOUCHES, buffer, 1);
 	if (ret < 0) {
 		printk("read max touches error (%d)\n", ret);
 		return ret;
 	} else {
 		ts->max_touches = buffer[0];
+		if (ts->max_touches > SITRONIX_MAX_SUPPORTED_POINT) {
+			ts->max_touches = SITRONIX_MAX_SUPPORTED_POINT;
+		}
 		printk("max touches = %d \n",ts->max_touches);
 	}
 	return 0;
 }
 
+/**
+ * @brief Reading out touch controller i2c protocol type
+ * @param[in,out] ts Internal touch data struct
+ * @return Error code
+ */
 static int sitronix_get_protocol_type(struct sitronix_ts_data_s *ts)
 {
 	int ret = 0;
 	uint8_t buffer[1];
 
-	buffer[0] = I2C_PROTOCOL;
-	ret = i2c_master_send(ts->client, buffer, 1);
-	if (ret < 0){
-		printk("send i2c protocol command error (%d)\n", ret);
-		return ret;
-	}
-	ret = i2c_master_recv(ts->client, buffer, 1);
-	if (ret < 0){
+	ret = sitronix_i2c_read_bytes(ts->client, I2C_PROTOCOL, buffer, 1);
+	if (ret < 0) {
 		printk("read i2c protocol error (%d)\n", ret);
 		return ret;
-	}else{
+	} else {
 		ts->touch_protocol_type = buffer[0] & I2C_PROTOCOL_BMSK;
-		if(ts->touch_protocol_type == SITRONIX_A_TYPE)
+		if (ts->touch_protocol_type == SITRONIX_A_TYPE) {
 			ts->pixel_length = PIXEL_DATA_LENGTH_A;
-		else if(ts->touch_protocol_type == SITRONIX_B_TYPE)
+		} else if (ts->touch_protocol_type == SITRONIX_B_TYPE) {
 			ts->pixel_length = PIXEL_DATA_LENGTH_B;
-		else
+		} else {
 			ts->pixel_length = PIXEL_DATA_LENGTH_A;
+		}
+
 		printk("i2c protocol = %d \n", ts->touch_protocol_type);
 	}
+
 	return 0;
 }
 
+/**
+ * @brief Reading out touch screen resolution
+ * @param[in,out] ts Internal touch data struct
+ * @return Error code
+ */
 static int sitronix_get_resolution(struct sitronix_ts_data_s *ts)
 {
 	int ret = 0;
 	uint8_t buffer[3];
 
-	buffer[0] = XY_RESOLUTION_HIGH;
-	ret = i2c_master_send(ts->client, buffer, 1);
+	ret = sitronix_i2c_read_bytes(ts->client, XY_RESOLUTION_HIGH, buffer, 3);
 	if (ret < 0) {
-		printk("send resolution command error (%d)\n", ret);
-		return ret;
-	}
-	ret = i2c_master_recv(ts->client, buffer, 3);
-	if (ret < 0) {
-		printk("read resolution error (%d)\n", ret);
+		DbgMsg("read resolution error (%d)\n", ret);
 		return ret;
 	} else {
 		ts->resolution_x = ((buffer[0] & (X_RES_H_BMSK << X_RES_H_SHFT)) << 4) | buffer[1];
 		ts->resolution_y = ((buffer[0] & Y_RES_H_BMSK) << 8) | buffer[2];
-		printk("resolution = %d x %d\n", ts->resolution_x, ts->resolution_y);
+		DbgMsg("resolution = %d x %d\n", ts->resolution_x, ts->resolution_y);
 	}
+
 	return 0;
 }
 
+/**
+ * @brief Set/Clear powerdown bit
+ * @param[in,out] ts Internal touch data struct
+ * @param[in] value  Value to be set
+ * @return Error code
+ */
 static int sitronix_ts_set_powerdown_bit(struct sitronix_ts_data_s *ts, int value)
 {
 	int ret = 0;
 	uint8_t buffer[2];
 
 	DbgMsg("%s, value = %d\n", __func__, value);
-	buffer[0] = DEVICE_CONTROL_REG;
-	ret = i2c_master_send(ts->client, buffer, 1);
-	if (ret < 0) {
-		printk("send device control command error (%d)\n", ret);
-		return ret;
-	}
-
-	ret = i2c_master_recv(ts->client, buffer, 1);
+	ret = sitronix_i2c_read_bytes(ts->client, DEVICE_CONTROL_REG, buffer, 1);
 	if (ret < 0){
 		printk("read device control status error (%d)\n", ret);
 		return ret;
@@ -277,6 +350,11 @@ static int sitronix_ts_set_powerdown_bit(struct sitronix_ts_data_s *ts, int valu
 	return 0;
 }
 
+/**
+ * @brief Collect touch controller data
+ * @param[in,out] ts Internal touch data struct
+ * @return Error code
+ */
 static int sitronix_ts_get_touch_info(struct sitronix_ts_data_s *ts)
 {
 	int ret = 0;
@@ -286,7 +364,17 @@ static int sitronix_ts_get_touch_info(struct sitronix_ts_data_s *ts)
 		return ret;
 	}
 
+	ret = sitronix_ts_get_chip_id(ts);
+	if (ret < 0) {
+		return ret;
+	}
+
 	ret = sitronix_get_fw_revision(ts);
+	if (ret < 0) {
+		return ret;
+	}
+
+	ret = sitronix_get_protocol_type(ts);
 	if (ret < 0) {
 		return ret;
 	}
@@ -297,29 +385,29 @@ static int sitronix_ts_get_touch_info(struct sitronix_ts_data_s *ts)
 	}
 
 	if ((ts->fw_revision[0] == 0) && (ts->fw_revision[1] == 0)) {
-		ts->touch_protocol_type = SITRONIX_B_TYPE;
+		if (ts->touch_protocol_type == SITRONIX_RESERVED_TYPE_0) {
+			ts->touch_protocol_type = SITRONIX_B_TYPE;
+			printk("i2c protocol (revised) = %d \n", ts->touch_protocol_type);
+		}
+	}
+
+	if (ts->touch_protocol_type == SITRONIX_A_TYPE) {
+		ts->pixel_length = PIXEL_DATA_LENGTH_A;
+	} else if (ts->touch_protocol_type == SITRONIX_B_TYPE) {
 		ts->pixel_length = PIXEL_DATA_LENGTH_B;
-		printk("i2c protocol = %d \n", ts->touch_protocol_type);
-		printk("max touches = %d \n",ts->max_touches);
-	} else {
-		ret = sitronix_get_protocol_type(ts);
-		if (ret < 0) {
-			return ret;
-		}
-		if (ts->touch_protocol_type == SITRONIX_B_TYPE) {
-			ts->max_touches = 2;
-			printk("max touches = %d \n",ts->max_touches);
-		} else {
-			ret = sitronix_get_max_touches(ts);
-			if(ret < 0) {
-				return ret;
-			}
-		}
+		ts->max_touches = 2;
+		printk("max touches (revised) = %d \n", ts->max_touches);
 	}
 
 	return 0;
 }
 
+/**
+ * @brief Read touch controller status
+ * @param[in,out] ts Internal touch data struct
+ * @param[out] dev_status Device status
+ * @return Error code
+ */
 static int sitronix_ts_get_device_status(struct sitronix_ts_data_s *ts, uint8_t *dev_status)
 {
 	int ret = 0;
@@ -346,6 +434,12 @@ static int sitronix_ts_get_device_status(struct sitronix_ts_data_s *ts, uint8_t 
 	return 0;
 }
 
+/**
+ * @brief Read Enhanced function control register
+ * @param[in,out] ts Internal touch data struct
+ * @param[out] value Value to write data to
+ * @return Error code
+ */
 static int sitronix_ts_Enhance_Function_control(struct sitronix_ts_data_s *ts, uint8_t *value)
 {
 	int ret = 0;
@@ -460,10 +554,8 @@ static int sitronix_ts_identify(struct sitronix_ts_data_s *ts)
 static void sitronix_ts_work_func(struct work_struct *work)
 {
 	int i;
-#ifdef SITRONIX_TOUCH_KEY
-	int j;
-#endif /* SITRONIX_TOUCH_KEY */
 	int ret;
+	uint16_t x, y;
 #ifndef SITRONIX_INT_POLLING_MODE
 	struct sitronix_ts_data_s *ts = \
 		container_of(work, struct sitronix_ts_data_s, work);
@@ -472,222 +564,84 @@ static void sitronix_ts_work_func(struct work_struct *work)
 		container_of(to_delayed_work(work), struct sitronix_ts_data_s, work);
 #endif /* SITRONIX_INT_POLLING_MODE */
 	uint8_t buffer[2 + SITRONIX_MAX_SUPPORTED_POINT * PIXEL_DATA_LENGTH_A];
-	static MTD_STRUCTURE MTDStructure[SITRONIX_MAX_SUPPORTED_POINT]={{0}};
 	uint8_t PixelCount = 0;
-	static uint8_t all_clear = 1;
+	struct sitronix_xy_data_s *p_xy_data = NULL;
 
 	DbgMsg("%s\n",  __func__);
 	if (ts->suspend_state) {
 		goto exit_invalid_data;
 	}
 
-	/* get finger count */
-	buffer[0] = FINGERS;
-	ret = i2c_master_send(ts->client, buffer, 1);
-	if (ret < 0) {
-		printk("send finger command error (%d)\n", ret);
-	}
-	ret = i2c_master_recv(ts->client,
-						  buffer, 2 + ts->max_touches * ts->pixel_length);
+	/* get touch data */
+	ret = sitronix_i2c_read_bytes(ts->client, KEYS_REG, buffer, 1 + ts->max_touches * ts->pixel_length);
 	if (ret < 0) {
 		printk("read finger error (%d)\n", ret);
-		i2cErrorCount ++;
+		i2cErrorCount++;
 		goto exit_invalid_data;
 	} else {
 		i2cErrorCount = 0;
-#ifdef SITRONIX_FINGER_COUNT_REG_ENABLE
-		/* PixelCount = buffer[0] & FINGERS_BMSK; */
-		PixelCount = ((struct stx_report_data_s *)buffer)->fingers;
-#else
-		for (i = 0; i < ts->max_touches; i++) {
-			if (buffer[2 + i * ts->pixel_length] >= 0x80) {
-				PixelCount++;
-			}
-		}
-#endif /* SITRONIX_FINGER_COUNT_REG_ENABLE */
-		DbgMsg("fingers = %d\n", PixelCount);
 	}
 
-#ifdef SITRONIX_SENSOR_KEY
-	for (i = 0; i < SITRONIX_NUMBER_SENSOR_KEY; i++) {
-		if (buffer[1] & (1 << i)) {
-			DbgMsg("key[%d] down\n", i);
-			input_report_key(ts->keyevent_input, sitronix_sensor_key[i], 1);
-		} else {
-			DbgMsg("key[%d] up\n", i);
-			input_report_key(ts->keyevent_input, sitronix_sensor_key[i], 0);
-		}
-	}
-#endif /* SITRONIX_SENSOR_KEY */
-
+	p_xy_data = (struct sitronix_xy_data_s *)&buffer[1];
 	for (i = 0; i < ts->max_touches; i++) {
+		/* DbgMsg("Key %d: 0x%02x\n", i, p_xy_data[i].xy_info.byte); */
+		if (p_xy_data[i].xy_info.fields.valid == 1) {
+		/* if (buffer[1 + i * ts->pixel_length + XY_COORD_H] & 0x80) { */
+			x = 0 | (u16)p_xy_data[i].xy_info.fields.x_h << 8 | (u16)p_xy_data[i].x_l;
+			y = 0 | (u16)p_xy_data[i].xy_info.fields.y_h << 8 | (u16)p_xy_data[i].y_l;
+			/* DbgMsg("X: 0x%04x, Y: 0x%04x", x, y); */
+			PixelCount++;
+			sitronix_ts_pen_down(ts->input_dev, i, x, y);
 #ifndef SITRONIX_TOUCH_KEY
-		if ((buffer[2 + ts->pixel_length * i] >> X_COORD_VALID_SHFT) == 1) {
-			MTDStructure[i].Pixel_X = ((buffer[2 + ts->pixel_length * i] & (X_COORD_H_BMSK << X_COORD_H_SHFT)) << 4) | (buffer[2 + ts->pixel_length * i + X_COORD_L]);
-			MTDStructure[i].Pixel_Y = ((buffer[2 + ts->pixel_length * i] & Y_COORD_H_BMSK) << 8) |  (buffer[2 + ts->pixel_length * i + Y_COORD_L]);
-			MTDStructure[i].Current_Pressed_area = AREA_DISPLAY;
-		} else {
-			MTDStructure[i].Current_Pressed_area = AREA_NONE;
-		}
-#else
-		MTDStructure[i].Pixel_X = ((buffer[2 + ts->pixel_length * i] & (X_COORD_H_BMSK << X_COORD_H_SHFT)) << 4) |  (buffer[2 + ts->pixel_length * i + X_COORD_L]);
-		MTDStructure[i].Pixel_Y = ((buffer[2 + ts->pixel_length * i] & Y_COORD_H_BMSK) << 8) |  (buffer[2 + ts->pixel_length * i + Y_COORD_L]);
-		if ((buffer[2 + ts->pixel_length * i] >> X_COORD_VALID_SHFT) == 1) {
-			MTDStructure[i].Current_Pressed_area = AREA_INVALID;
-#ifdef SITRONIX_KEY_BOUNDARY_MANUAL_SPECIFY
-			if ((MTDStructure[i].Pixel_X < ts->resolution_x) && (MTDStructure[i].Pixel_Y < sitronix_key_array[0].y_low)) {
-#else
-				if ((MTDStructure[i].Pixel_X < ts->resolution_x) && (MTDStructure[i].Pixel_Y < (ts->resolution_y - ts->resolution_y / SCALE_KEY_HIGH_Y))) {
-#endif // SITRONIX_KEY_BOUNDARY_MANUAL_SPECIFY
-					MTDStructure[i].Current_Pressed_area = AREA_DISPLAY;
-				} else {
-					for (j = 0; j < SITRONIX_NUMBER_TOUCH_KEY; j++) {
-						if ((MTDStructure[i].Pixel_X >= sitronix_key_array[j].x_low) && \
-							(MTDStructure[i].Pixel_X <= sitronix_key_array[j].x_high) && \
-							(MTDStructure[i].Pixel_Y >= sitronix_key_array[j].y_low) && \
-							(MTDStructure[i].Pixel_Y <= sitronix_key_array[j].y_high)) {
-							MTDStructure[i].Current_Pressed_area = AREA_KEY;
-							MTDStructure[i].Current_key_index = j;
-							break;
-						}
+ #ifdef SITRONIX_KEY_BOUNDARY_MANUAL_SPECIFY
+			if (y < SITRONIX_TOUCH_RESOLUTION_Y) {
+ #else
+			//if (y < (ts->resolution_y - ts->resolution_y / SCALE_KEY_HIGH_Y)) {
+ #endif /* SITRONIX_KEY_BOUNDARY_MANUAL_SPECIFY */
+				PixelCount++;
+				sitronix_ts_pen_down(ts->input_dev, i, x, y);
+				//DbgMsg("AREA_DISPLAY\n");
+			} else {
+				for (j = 0; j < (sizeof(sitronix_aa_key_array)/sizeof(struct sitronix_AA_key)); j++) {
+					if((x >= sitronix_aa_key_array[j].x_low) &&
+					   (x <= sitronix_aa_key_array[j].x_high) &&
+					   (y >= sitronix_aa_key_array[j].y_low) &&
+					   (y <= sitronix_aa_key_array[j].y_high)) {
+						aa_key_status |= (1 << j);
+						//DbgMsg("AREA_KEY [%d]\n", j);
+						break;
 					}
 				}
 			}
+#endif
 		} else {
-			MTDStructure[i].Current_Pressed_area = AREA_NONE;
+			sitronix_ts_pen_up(ts->input_dev, i);
 		}
-#endif // SITRONIX_TOUCH_KEY
 	}
-	if (PixelCount != 0) {
-		for (i = 0; i < ts->max_touches; i++) {
-#ifndef SITRONIX_TOUCH_KEY
-			input_report_abs(ts->input_dev,  ABS_MT_TRACKING_ID, i);
-			if (MTDStructure[i].Current_Pressed_area == AREA_DISPLAY) {
-				if (sitronix_invert_x == 1) {
-					input_report_abs(ts->input_dev, ABS_MT_POSITION_X, (ts->resolution_x - MTDStructure[i].Pixel_X));
-				} else {
-					input_report_abs(ts->input_dev, ABS_MT_POSITION_X, MTDStructure[i].Pixel_X);
-				}
-				if (sitronix_invert_y == 1) {
-					input_report_abs(ts->input_dev, ABS_MT_POSITION_Y, (MTDStructure[i].Pixel_Y));
-				} else {
-					input_report_abs(ts->input_dev, ABS_MT_POSITION_Y, (ts->resolution_y - MTDStructure[i].Pixel_Y));
-				}
-				input_report_abs(ts->input_dev,  ABS_MT_TOUCH_MAJOR, 1);
-				input_report_abs(ts->input_dev,  ABS_MT_WIDTH_MAJOR, 1);
-				DbgMsg("[%d](%d, %d)+\n", i, MTDStructure[i].Pixel_X, MTDStructure[i].Pixel_Y);
-				input_mt_sync(ts->input_dev);
-			} else if (MTDStructure[i].Current_Pressed_area == AREA_NONE) {
-				input_report_abs(ts->input_dev,  ABS_MT_TOUCH_MAJOR, 0);
-				input_report_abs(ts->input_dev,  ABS_MT_WIDTH_MAJOR, 0);
-				DbgMsg("[%d](%d, %d)-\n", i, MTDStructure[i].Pixel_X, MTDStructure[i].Pixel_Y);
-				input_mt_sync(ts->input_dev);
-			}
-			memcpy(&sitronix_ts_gMTDPreStructure[i], &MTDStructure[i], sizeof(MTD_STRUCTURE));
-#else
-			if (sitronix_ts_gMTDPreStructure[i].First_Pressed_area == AREA_NONE) {
-				if (MTDStructure[i].Current_Pressed_area == AREA_DISPLAY) {
-					input_report_abs(ts->input_dev,  ABS_MT_TRACKING_ID, i);
-					if (sitronix_invert_x == 1) {
-						input_report_abs(ts->input_dev, ABS_MT_POSITION_X, (ts->resolution_x - MTDStructure[i].Pixel_X));
-					} else {
-						input_report_abs(ts->input_dev, ABS_MT_POSITION_X, MTDStructure[i].Pixel_X);
-					}
-					if (sitronix_invert_y == 1) {
-						input_report_abs(ts->input_dev, ABS_MT_POSITION_Y, (MTDStructure[i].Pixel_Y));
-					} else {
-						input_report_abs(ts->input_dev, ABS_MT_POSITION_Y, (ts->resolution_y - MTDStructure[i].Pixel_Y));
-					}
-					input_report_abs(ts->input_dev,  ABS_MT_TOUCH_MAJOR, 1);
-					input_report_abs(ts->input_dev,  ABS_MT_WIDTH_MAJOR, 1);
-					input_mt_sync(ts->input_dev);
-					sitronix_ts_gMTDPreStructure[i].First_Pressed_area = AREA_DISPLAY;
-					DbgMsg("[%d](%d, %d)\n", i, MTDStructure[i].Pixel_X, MTDStructure[i].Pixel_Y);
-				} else if (MTDStructure[i].Current_Pressed_area == AREA_KEY) {
-					sitronix_ts_gMTDPreStructure[i].First_Pressed_area = AREA_KEY;
-					sitronix_ts_gMTDPreStructure[i].First_key_index = MTDStructure[i].Current_key_index;
-					input_report_key(ts->keyevent_input, sitronix_key_array[MTDStructure[i].Current_key_index].code, 1);
-					DbgMsg("key [%d] down\n", MTDStructure[i].Current_key_index);
-				}
-			} else if (sitronix_ts_gMTDPreStructure[i].First_Pressed_area == AREA_DISPLAY) {
-				if (MTDStructure[i].Current_Pressed_area == AREA_DISPLAY) {
-					input_report_abs(ts->input_dev,  ABS_MT_TRACKING_ID, i);
-					if (sitronix_invert_x == 1) {
-						input_report_abs(ts->input_dev, ABS_MT_POSITION_X, (ts->resolution_x - MTDStructure[i].Pixel_X));
-					} else {
-						input_report_abs(ts->input_dev, ABS_MT_POSITION_X, MTDStructure[i].Pixel_X);
-					}
-					if (sitronix_invert_y == 1) {
-						input_report_abs(ts->input_dev, ABS_MT_POSITION_Y, (MTDStructure[i].Pixel_Y));
-					} else {
-						input_report_abs(ts->input_dev, ABS_MT_POSITION_Y, (ts->resolution_y - MTDStructure[i].Pixel_Y));
-					}
-					input_report_abs(ts->input_dev,  ABS_MT_TOUCH_MAJOR, 1);
-					input_report_abs(ts->input_dev,  ABS_MT_WIDTH_MAJOR, 1);
-					input_mt_sync(ts->input_dev);
-					DbgMsg("[%d](%d, %d)+\n", i, MTDStructure[i].Pixel_X, MTDStructure[i].Pixel_Y);
-				} else if (MTDStructure[i].Current_Pressed_area == AREA_KEY) {
-					input_report_abs(ts->input_dev,  ABS_MT_TRACKING_ID, i);
-					input_report_abs(ts->input_dev,  ABS_MT_TOUCH_MAJOR, 0);
-					input_report_abs(ts->input_dev,  ABS_MT_WIDTH_MAJOR, 0);
-					input_mt_sync(ts->input_dev);
-					DbgMsg("[%d](%d, %d)-\n", i, MTDStructure[i].Pixel_X, MTDStructure[i].Pixel_Y);
-					sitronix_ts_gMTDPreStructure[i].First_Pressed_area = AREA_NONE;
-				} else if (MTDStructure[i].Current_Pressed_area == AREA_NONE) {
-					input_report_abs(ts->input_dev,  ABS_MT_TRACKING_ID, i);
-					input_report_abs(ts->input_dev,  ABS_MT_TOUCH_MAJOR, 0);
-					input_report_abs(ts->input_dev,  ABS_MT_WIDTH_MAJOR, 0);
-					input_mt_sync(ts->input_dev);
-					DbgMsg("[%d](%d, %d)-\n", i, MTDStructure[i].Pixel_X, MTDStructure[i].Pixel_Y);
-					sitronix_ts_gMTDPreStructure[i].First_Pressed_area = AREA_NONE;
-				}
-			} else if (sitronix_ts_gMTDPreStructure[i].First_Pressed_area == AREA_KEY) {
-				if (MTDStructure[i].Current_Pressed_area == AREA_KEY) {
-					input_report_key(ts->keyevent_input, sitronix_key_array[sitronix_ts_gMTDPreStructure[i].First_key_index].code, 1);
-					DbgMsg("key [%d] down+\n", sitronix_ts_gMTDPreStructure[i].First_key_index);
-				} else if (MTDStructure[i].Current_Pressed_area == AREA_DISPLAY) {
-					input_report_key(ts->keyevent_input, sitronix_key_array[sitronix_ts_gMTDPreStructure[i].First_key_index].code, 0);
-					DbgMsg("key [%d] up\n", sitronix_ts_gMTDPreStructure[i].First_key_index);
-					sitronix_ts_gMTDPreStructure[i].First_Pressed_area = AREA_NONE;
-				} else if (MTDStructure[i].Current_Pressed_area == AREA_NONE) {
-					input_report_key(ts->keyevent_input, sitronix_key_array[sitronix_ts_gMTDPreStructure[i].First_key_index].code, 0);
-					DbgMsg("key [%d] up\n", sitronix_ts_gMTDPreStructure[i].First_key_index);
-					sitronix_ts_gMTDPreStructure[i].First_Pressed_area = AREA_NONE;
-				}
-			}
-#endif // SITRONIX_TOUCH_KEY
-		}
-		all_clear = 0;
+	input_report_key(ts->input_dev, BTN_TOUCH, PixelCount > 0);
+	input_sync(ts->input_dev);
+
+exit_invalid_data:
 #ifdef SITRONIX_INT_POLLING_MODE
+	if (PixelCount > 0) {
+#ifdef SITRONIX_MONITOR_THREAD
+		if (ts->enable_monitor_thread == 1) {
+			atomic_set(&iMonitorThreadPostpone,1);
+		}
+#endif /* SITRONIX_MONITOR_THREAD */
 		schedule_delayed_work(&ts->work, msecs_to_jiffies(INT_POLLING_MODE_INTERVAL));
-#endif // SITRONIX_INT_POLLING_MODE
 	} else {
-		if (all_clear == 0) {
-			input_report_abs(ts->input_dev,  ABS_MT_TOUCH_MAJOR, 0);
-			input_report_abs(ts->input_dev,  ABS_MT_WIDTH_MAJOR, 0);
-			input_mt_sync(ts->input_dev);
-			all_clear = 1;
-#ifdef SITRONIX_TOUCH_KEY
-			for (i = 0; i < ts->max_touches; i++) {
-				if (sitronix_ts_gMTDPreStructure[i].First_Pressed_area == AREA_KEY) {
-					input_report_key(ts->keyevent_input, sitronix_key_array[sitronix_ts_gMTDPreStructure[i].First_key_index].code, 0);
-					DbgMsg("key [%d] up\n", sitronix_ts_gMTDPreStructure[i].First_key_index);
-					sitronix_ts_gMTDPreStructure[i].First_Pressed_area = AREA_NONE;
-				}
-			}
-#endif // SITRONIX_TOUCH_KEY
-		} else {
-			DbgMsg("ignore dummy finger leave\n");
-		}
-#ifdef SITRONIX_INT_POLLING_MODE
-		if (ts->use_irq) {
+#ifdef CONFIG_HARDIRQS_SW_RESEND
+		printk("Please not set HARDIRQS_SW_RESEND to prevent kernel from sending SW IRQ\n");
+#endif /* CONFIG_HARDIRQS_SW_RESEND */
+		if (ts->use_irq){
 			sitronix_ts_irq_on = 1;
+			/* atomic_set(&sitronix_ts_irq_on, 1); */
 			enable_irq(ts->client->irq);
 		}
-#endif // SITRONIX_INT_POLLING_MODE
 	}
-	input_sync(ts->input_dev);
-exit_invalid_data:
+#endif /* SITRONIX_INT_POLLING_MODE */
+
 #if defined(SITRONIX_LEVEL_TRIGGERED)
 	if (ts->use_irq) {
 		sitronix_ts_irq_on = 1;
@@ -711,12 +665,12 @@ static irqreturn_t sitronix_ts_irq_handler(int irq, void *dev_id)
 #if defined(SITRONIX_LEVEL_TRIGGERED) || defined(SITRONIX_INT_POLLING_MODE)
 	sitronix_ts_irq_on = 0;
 	disable_irq_nosync(ts->client->irq);
-#endif // defined(SITRONIX_LEVEL_TRIGGERED) || defined(SITRONIX_INT_POLLING_MODE)
+#endif /* defined(SITRONIX_LEVEL_TRIGGERED) || defined(SITRONIX_INT_POLLING_MODE) */
 #ifndef SITRONIX_INT_POLLING_MODE
 	schedule_work(&ts->work);
 #else
 	schedule_delayed_work(&ts->work, msecs_to_jiffies(0));
-#endif // SITRONIX_INT_POLLING_MODE
+#endif /* SITRONIX_INT_POLLING_MODE */
 
 	return IRQ_HANDLED;
 }
@@ -726,7 +680,7 @@ static int st1633_i2c_probe(struct i2c_client *client, const struct i2c_device_i
 	struct device *dev = &client->dev;
 #if defined(SITRONIX_SENSOR_KEY) || defined (SITRONIX_TOUCH_KEY)
 	int i;
-#endif // defined(SITRONIX_SENSOR_KEY) || defined (SITRONIX_TOUCH_KEY)
+#endif /* defined(SITRONIX_SENSOR_KEY) || defined (SITRONIX_TOUCH_KEY) */
 	struct sitronix_ts_data_s *ts;
 	int ret = 0;
 	uint16_t max_x = 0, max_y = 0;
@@ -756,13 +710,11 @@ static int st1633_i2c_probe(struct i2c_client *client, const struct i2c_device_i
 	DbgMsg("ST1633 - create links between data.\n");
 	ts->client = client;
 	i2c_set_clientdata(client, ts);
-	pdata = client->dev.platform_data; //dev_get_platdata(dev);
+	pdata = client->dev.platform_data;
 
 	if (NULL == pdata) {
 		printk("No valid platform data available.\n");
 		oftree = 0;
-		/* ret = -ENODEV; */
-		/* goto err_device_info_error; */
 	} else {
 		DbgMsg("Switching to oftree mode.\n");
 		oftree = 1;
@@ -799,7 +751,6 @@ static int st1633_i2c_probe(struct i2c_client *client, const struct i2c_device_i
 	ts->input_dev = input_allocate_device();
 	if (ts->input_dev == NULL) {
 		dev_err(dev, "Can not allocate memory for input device.\n");
-		/* printk("Can not allocate memory for input device."); */
 		ret = -ENOMEM;
 		goto err_input_dev_alloc_failed;
 	}
@@ -812,7 +763,7 @@ static int st1633_i2c_probe(struct i2c_client *client, const struct i2c_device_i
 	DbgMsg("ST1633 - adding delayed work...");
 	INIT_DELAYED_WORK(&ts->work, sitronix_ts_work_func);
 	DbgMsg(" done\n");
-#endif // SITRONIX_INT_POLLING_MODE
+#endif /* SITRONIX_INT_POLLING_MODE */
 
 	ts->input_dev->name = "sitronix-i2c-touch-mt";
 	__set_bit(EV_SYN, ts->input_dev->evbit);
@@ -824,30 +775,29 @@ static int st1633_i2c_probe(struct i2c_client *client, const struct i2c_device_i
 	ts->keyevent_input = input_allocate_device();
 	if (ts->keyevent_input == NULL) {
 		dev_err(dev, "Can not allocate memory for key input device.\n");
-		/* printk("Can not allocate memory for key input device."); */
 		ret = -ENOMEM;
 		goto err_input_dev_alloc_failed;
 	}
 	ts->keyevent_input->name  = "sitronix-i2c-touch-key";
 	set_bit(EV_KEY, ts->keyevent_input->evbit);
-#endif // defined(SITRONIX_SENSOR_KEY) || defined (SITRONIX_TOUCH_KEY)
+#endif /* defined(SITRONIX_SENSOR_KEY) || defined (SITRONIX_TOUCH_KEY) */
 #if defined(SITRONIX_SENSOR_KEY)
 	for (i = 0; i < SITRONIX_NUMBER_SENSOR_KEY; i++) {
 		set_bit(sitronix_sensor_key[i], ts->keyevent_input->keybit);
 	}
-#endif // defined(SITRONIX_SENSOR_KEY)
+#endif /* defined(SITRONIX_SENSOR_KEY) */
 
 #ifndef SITRONIX_TOUCH_KEY
 	max_x = ts->resolution_x;
 	max_y = ts->resolution_y;
 #else
-#ifdef SITRONIX_KEY_BOUNDARY_MANUAL_SPECIFY
+ #ifdef SITRONIX_KEY_BOUNDARY_MANUAL_SPECIFY
 	for (i = 0; i < SITRONIX_NUMBER_TOUCH_KEY; i++) {
 		set_bit(sitronix_key_array[i].code, ts->keyevent_input->keybit);
 	}
 	max_x = SITRONIX_TOUCH_RESOLUTION_X;
 	max_y = SITRONIX_TOUCH_RESOLUTION_Y;
-#else
+ #else
 	for (i = 0; i < SITRONIX_NUMBER_TOUCH_KEY; i++) {
 		sitronix_key_array[i].x_low = ((ts->resolution_x / SITRONIX_NUMBER_TOUCH_KEY ) * i ) + 15;
 		sitronix_key_array[i].x_high = ((ts->resolution_x / SITRONIX_NUMBER_TOUCH_KEY ) * (i + 1)) - 15;
@@ -858,8 +808,8 @@ static int st1633_i2c_probe(struct i2c_client *client, const struct i2c_device_i
 	}
 	max_x = ts->resolution_x;
 	max_y = ts->resolution_y - ts->resolution_y / SCALE_KEY_HIGH_Y;
-#endif // SITRONIX_KEY_BOUNDARY_MANUAL_SPECIFY
-#endif // SITRONIX_TOUCH_KEY
+ #endif /* SITRONIX_KEY_BOUNDARY_MANUAL_SPECIFY */
+#endif /* SITRONIX_TOUCH_KEY */
 #if defined(SITRONIX_SENSOR_KEY) || defined (SITRONIX_TOUCH_KEY)
 	ret = input_register_device(ts->keyevent_input);
 	if (ret < 0) {
@@ -867,8 +817,14 @@ static int st1633_i2c_probe(struct i2c_client *client, const struct i2c_device_i
 		/* printk("Can not register key input device."); */
 		goto err_input_register_device_failed;
 	}
-#endif // defined(SITRONIX_SENSOR_KEY) || defined (SITRONIX_TOUCH_KEY)
+#endif /* defined(SITRONIX_SENSOR_KEY) || defined (SITRONIX_TOUCH_KEY) */
 
+#if defined(SITRONIX_SUPPORT_MT_SLOT)
+	/* Multi touch */
+	input_mt_init_slots(ts->input_dev, ts->max_touches, 0);
+	input_set_abs_params(ts->input_dev, ABS_MT_POSITION_X, 0, max_x, 0, 0);
+	input_set_abs_params(ts->input_dev, ABS_MT_POSITION_Y, 0, max_y, 0, 0);
+#else
 	__set_bit(ABS_X, ts->input_dev->absbit);
 	__set_bit(ABS_Y, ts->input_dev->absbit);
 	__set_bit(ABS_MT_TOUCH_MAJOR, ts->input_dev->absbit);
@@ -887,11 +843,18 @@ static int st1633_i2c_probe(struct i2c_client *client, const struct i2c_device_i
 	input_set_abs_params(ts->input_dev, ABS_MT_POSITION_Y, 0, max_y, 0, 0);
 	input_set_abs_params(ts->input_dev, ABS_MT_TRACKING_ID, 0, ts->max_touches, 0, 0);
 	input_set_abs_params(ts->input_dev, ABS_PRESSURE, 0, 255, 0, 0);
+#endif
+#ifndef SITRONIX_SWAP_XY
+	input_set_abs_params(ts->input_dev, ABS_MT_POSITION_X, 0, max_x, 0, 0);
+	input_set_abs_params(ts->input_dev, ABS_MT_POSITION_Y, 0, max_y, 0, 0);
+#else
+	input_set_abs_params(ts->input_dev, ABS_MT_POSITION_X, 0, max_y, 0, 0);
+	input_set_abs_params(ts->input_dev, ABS_MT_POSITION_Y, 0, max_x, 0, 0);
+#endif /* SITRONIX_SWAP_XY */
 
 	ret = input_register_device(ts->input_dev);
 	if(ret < 0) {
 		dev_err(dev, "Can not register input device.\n");
-		/* printk("Can not register input device."); */
 		goto err_input_register_device_failed;
 	}
 
@@ -901,7 +864,7 @@ static int st1633_i2c_probe(struct i2c_client *client, const struct i2c_device_i
 		ret = request_irq(client->irq, sitronix_ts_irq_handler, IRQF_TRIGGER_LOW | IRQF_DISABLED, client->name, ts);
 #else
 		ret = request_irq(client->irq, sitronix_ts_irq_handler, IRQF_TRIGGER_FALLING | IRQF_DISABLED, client->name, ts);
-#endif // SITRONIX_LEVEL_TRIGGERED
+#endif /* SITRONIX_LEVEL_TRIGGERED */
 		if (ret == 0) {
 			sitronix_ts_irq_on = 1;
 			ts->use_irq = 1;
@@ -929,7 +892,7 @@ err_input_register_device_failed:
 	input_free_device(ts->input_dev);
 #if defined(SITRONIX_SENSOR_KEY) || defined (SITRONIX_TOUCH_KEY)
 	input_free_device(ts->keyevent_input);
-#endif // defined(SITRONIX_SENSOR_KEY) || defined (SITRONIX_TOUCH_KEY)
+#endif /* defined(SITRONIX_SENSOR_KEY) || defined (SITRONIX_TOUCH_KEY) */
 err_input_dev_alloc_failed:
 	kfree(ts);
 err_alloc_data_failed:
@@ -938,14 +901,48 @@ err_device_info_error:
 	return ret;
 }
 
-/**
- * @brief Local function to read data from i2c slave
- * @param[in,out] client I2C client data
- * @param[in] addr       Address to read data from slave
- * @param[in] rxbuf      Input data buffer
- * @param[in] len        Data length
- * @return Error code
- */
+static inline void sitronix_ts_pen_down(struct input_dev *input_dev, int id, u16 x, u16 y)
+{
+#ifdef SITRONIX_SUPPORT_MT_SLOT
+	input_mt_slot(input_dev, id);
+ #ifndef SITRONIX_SWAP_XY
+	input_report_abs(input_dev,  ABS_MT_POSITION_X, x);
+	input_report_abs(input_dev,  ABS_MT_POSITION_Y, y);
+	input_mt_report_slot_state(input_dev, MT_TOOL_FINGER, true);
+ #else
+	input_report_abs(input_dev,  ABS_MT_POSITION_X, y);
+	input_report_abs(input_dev,  ABS_MT_POSITION_Y, x);
+	input_mt_report_slot_state(input_dev, MT_TOOL_FINGER, true);
+ #endif /* SITRONIX_SWAP_XY */
+#else
+	input_report_abs(input_dev,  ABS_MT_TRACKING_ID, id);
+ #ifndef SITRONIX_SWAP_XY
+	input_report_abs(input_dev,  ABS_MT_POSITION_X, x);
+	input_report_abs(input_dev,  ABS_MT_POSITION_Y, y);
+ #else
+	input_report_abs(input_dev,  ABS_MT_POSITION_X, y);
+	input_report_abs(input_dev,  ABS_MT_POSITION_Y, x);
+ #endif /* SITRONIX_SWAP_XY */
+	input_report_abs(input_dev,  ABS_MT_TOUCH_MAJOR, 255);
+	input_report_abs(input_dev,  ABS_MT_WIDTH_MAJOR, 255);
+	input_report_abs(input_dev, ABS_MT_PRESSURE, 255);
+	input_mt_sync(input_dev);
+#endif /* SITRONIX_SUPPORT_MT_SLOT */
+	DbgMsg("[%d](%d, %d)+\n", id, x, y);
+}
+
+static inline void sitronix_ts_pen_up(struct input_dev *input_dev, int id)
+{
+#ifdef SITRONIX_SUPPORT_MT_SLOT
+	input_mt_slot(input_dev, id);
+	input_mt_report_slot_state(input_dev, MT_TOOL_FINGER, false);
+#else
+	input_report_abs(input_dev,  ABS_MT_TRACKING_ID, id);
+	input_report_abs(input_dev, ABS_MT_PRESSURE, 0);
+#endif /* SITRONIX_SUPPORT_MT_SLOT */
+	DbgMsg("[%d]-\n", id);
+}
+
 static int sitronix_i2c_read_bytes(struct i2c_client *client, u8 addr, u8 *rxbuf, int len)
 {
 	int ret = 0;
@@ -965,7 +962,7 @@ static int sitronix_i2c_read_bytes(struct i2c_client *client, u8 addr, u8 *rxbuf
 			.buf = rxbuf,
 		},
 	};
-#endif // defined(SITRONIX_I2C_COMBINED_MESSAGE)
+#endif /* defined(SITRONIX_I2C_COMBINED_MESSAGE) */
 
 	if(rxbuf == NULL)
 		return -1;
@@ -978,7 +975,7 @@ static int sitronix_i2c_read_bytes(struct i2c_client *client, u8 addr, u8 *rxbuf
 		return ret;
 	}
 	ret = i2c_master_recv(client, rxbuf, len);
-#endif // defined(SITRONIX_I2C_COMBINED_MESSAGE)
+#endif /* defined(SITRONIX_I2C_COMBINED_MESSAGE) */
 	if (ret < 0){
 		DbgMsg("read 0x%x error (%d)\n", addr, ret);
 		return ret;
@@ -1005,7 +1002,7 @@ static int sitronix_i2c_write_bytes(struct i2c_client *client, u8 *txbuf, int le
 			.buf = txbuf,
 		},
 	};
-#endif // defined(SITRONIX_I2C_COMBINED_MESSAGE)
+#endif /* defined(SITRONIX_I2C_COMBINED_MESSAGE) */
 
 	if(txbuf == NULL)
 		return -1;
@@ -1013,7 +1010,7 @@ static int sitronix_i2c_write_bytes(struct i2c_client *client, u8 *txbuf, int le
 	ret = i2c_transfer(client->adapter, &msg[0], 1);
 #elif defined(SITRONIX_I2C_SINGLE_MESSAGE)
 	ret = i2c_master_send(client, txbuf, len);
-#endif // defined(SITRONIX_I2C_COMBINED_MESSAGE)
+#endif /* defined(SITRONIX_I2C_COMBINED_MESSAGE) */
 	if (ret < 0){
 		printk("write 0x%x error (%d)\n", *txbuf, ret);
 		return ret;
@@ -1032,7 +1029,7 @@ static int st1633_i2c_remove(struct i2c_client *client)
 	input_unregister_device(ts->input_dev);
 #if defined(SITRONIX_SENSOR_KEY) || defined (SITRONIX_TOUCH_KEY)
 	input_unregister_device(ts->keyevent_input);
-#endif // defined(SITRONIX_SENSOR_KEY) || defined (SITRONIX_TOUCH_KEY)
+#endif /* defined(SITRONIX_SENSOR_KEY) || defined (SITRONIX_TOUCH_KEY) */
 	kfree(ts);
 
 	return 0;
@@ -1054,7 +1051,7 @@ static int __maybe_unused st1633_i2c_suspend(struct device *dev)
 	ret = sitronix_ts_set_powerdown_bit(ts, 1);
 #ifdef SITRONIX_WAKE_UP_TOUCH_BY_INT
 	gpio_direction_output(ts->irq_gpio, 1);
-#endif // SITRONIX_WAKE_UP_TOUCH_BY_INT
+#endif /* SITRONIX_WAKE_UP_TOUCH_BY_INT */
 	DbgMsg("%s return\n", __func__);
 
 	return 0;
@@ -1068,7 +1065,7 @@ static int __maybe_unused st1633_i2c_resume(struct device *dev)
 	unsigned int gpio;
 #else
 	int ret;
-#endif // SITRONIX_WAKE_UP_TOUCH_BY_INT
+#endif /* SITRONIX_WAKE_UP_TOUCH_BY_INT */
 
 	DbgMsg("%s\n", __func__);
 #ifdef SITRONIX_WAKE_UP_TOUCH_BY_INT
@@ -1077,7 +1074,7 @@ static int __maybe_unused st1633_i2c_resume(struct device *dev)
 	gpio_direction_input(gpio);
 #else
 	ret = sitronix_ts_set_powerdown_bit(ts, 0);
-#endif // SITRONIX_WAKE_UP_TOUCH_BY_INT
+#endif /* SITRONIX_WAKE_UP_TOUCH_BY_INT */
 
 	ts->suspend_state = 0;
 	if(ts->use_irq){
@@ -1091,7 +1088,7 @@ static int __maybe_unused st1633_i2c_resume(struct device *dev)
 
 #ifdef CONFIG_OF
 static const struct of_device_id st1633_of_match[] = {
-	{ .compatible = "stromer-st1633", .data = NULL}, //&stromer_st1633 },
+	{ .compatible = "stromer-st1633", .data = NULL},
 	{ /* sentinel */ }
 };
 MODULE_DEVICE_TABLE(of, st1633_of_match);
@@ -1129,9 +1126,6 @@ static void __exit st1633_i2c_exit(void)
 {
 	i2c_del_driver(&st1633_i2c_driver);
 }
-
-/* module_init(st1633_ts_init); */
-/* module_exit(st1633_ts_exit); */
 
 MODULE_DESCRIPTION("Sitronix Multi-Touch Driver");
 MODULE_AUTHOR("Christian Duenki <christian.duenki@escatec.com>");
