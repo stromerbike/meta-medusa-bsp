@@ -592,7 +592,7 @@ static void sitronix_ts_work_func(struct work_struct *work)
 			/* DbgMsg("X: 0x%04x, Y: 0x%04x", x, y); */
 			PixelCount++;
 			sitronix_ts_pen_down(ts->input_dev, i, x, y);
-#ifndef SITRONIX_TOUCH_KEY
+#ifdef SITRONIX_TOUCH_KEY
  #ifdef SITRONIX_KEY_BOUNDARY_MANUAL_SPECIFY
 			if (y < SITRONIX_TOUCH_RESOLUTION_Y) {
  #else
@@ -820,10 +820,25 @@ static int st1633_i2c_probe(struct i2c_client *client, const struct i2c_device_i
 #endif /* defined(SITRONIX_SENSOR_KEY) || defined (SITRONIX_TOUCH_KEY) */
 
 #if defined(SITRONIX_SUPPORT_MT_SLOT)
+#ifndef SITRONIX_SWAP_XY
+	/* Single touch */
+	input_set_abs_params(ts->input_dev, ABS_X, 0, max_x, 0, 0);
+	input_set_abs_params(ts->input_dev, ABS_Y, 0, max_y, 0, 0);
+
 	/* Multi touch */
 	input_mt_init_slots(ts->input_dev, ts->max_touches, 0);
 	input_set_abs_params(ts->input_dev, ABS_MT_POSITION_X, 0, max_x, 0, 0);
 	input_set_abs_params(ts->input_dev, ABS_MT_POSITION_Y, 0, max_y, 0, 0);
+#else
+	/* Single touch */
+	input_set_abs_params(ts->input_dev, ABS_X, 0, max_y, 0, 0);
+	input_set_abs_params(ts->input_dev, ABS_Y, 0, max_x, 0, 0);
+
+	/* Multi touch */
+	input_mt_init_slots(ts->input_dev, ts->max_touches, 0);
+	input_set_abs_params(ts->input_dev, ABS_MT_POSITION_X, 0, max_y, 0, 0);
+	input_set_abs_params(ts->input_dev, ABS_MT_POSITION_Y, 0, max_x, 0, 0);
+#endif /* SITRONIX_SWAP_XY */
 #else
 	__set_bit(ABS_X, ts->input_dev->absbit);
 	__set_bit(ABS_Y, ts->input_dev->absbit);
@@ -844,13 +859,6 @@ static int st1633_i2c_probe(struct i2c_client *client, const struct i2c_device_i
 	input_set_abs_params(ts->input_dev, ABS_MT_TRACKING_ID, 0, ts->max_touches, 0, 0);
 	input_set_abs_params(ts->input_dev, ABS_PRESSURE, 0, 255, 0, 0);
 #endif
-#ifndef SITRONIX_SWAP_XY
-	input_set_abs_params(ts->input_dev, ABS_MT_POSITION_X, 0, max_x, 0, 0);
-	input_set_abs_params(ts->input_dev, ABS_MT_POSITION_Y, 0, max_y, 0, 0);
-#else
-	input_set_abs_params(ts->input_dev, ABS_MT_POSITION_X, 0, max_y, 0, 0);
-	input_set_abs_params(ts->input_dev, ABS_MT_POSITION_Y, 0, max_x, 0, 0);
-#endif /* SITRONIX_SWAP_XY */
 
 	ret = input_register_device(ts->input_dev);
 	if(ret < 0) {

@@ -189,7 +189,7 @@ enum {
 #define IOCTL_SMT_HW_RESET               _IOC(_IOC_NONE, SMT_IOC_MAGIC, SMT_HW_RESET,            0)
 
 /* #define SITRONIX_SENSOR_KEY */
-#define SITRONIX_TOUCH_KEY
+/* #define SITRONIX_TOUCH_KEY */
 /* #define SITRONIX_KEY_BOUNDARY_MANUAL_SPECIFY */
 
 typedef struct mtd_structure_s {

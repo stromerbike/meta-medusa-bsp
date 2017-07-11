@@ -2126,10 +2126,10 @@ index 0000000..dad4765
 +#endif
 diff --git a/drivers/stromer/st1633.c b/drivers/stromer/st1633.c
 new file mode 100644
-index 0000000..ade4273
+index 0000000..bff064b
 --- /dev/null
 +++ b/drivers/stromer/st1633.c
-@@ -0,0 +1,1132 @@
+@@ -0,0 +1,1140 @@
 +/*
 + * Copyright (C) 2017 Christian Duenki, Escatec Switzerland AG
 + * christian.duenki@escatec.com
@@ -2724,7 +2724,7 @@ index 0000000..ade4273
 +			/* DbgMsg("X: 0x%04x, Y: 0x%04x", x, y); */
 +			PixelCount++;
 +			sitronix_ts_pen_down(ts->input_dev, i, x, y);
-+#ifndef SITRONIX_TOUCH_KEY
++#ifdef SITRONIX_TOUCH_KEY
 + #ifdef SITRONIX_KEY_BOUNDARY_MANUAL_SPECIFY
 +			if (y < SITRONIX_TOUCH_RESOLUTION_Y) {
 + #else
@@ -2952,10 +2952,25 @@ index 0000000..ade4273
 +#endif /* defined(SITRONIX_SENSOR_KEY) || defined (SITRONIX_TOUCH_KEY) */
 +
 +#if defined(SITRONIX_SUPPORT_MT_SLOT)
++#ifndef SITRONIX_SWAP_XY
++	/* Single touch */
++	input_set_abs_params(ts->input_dev, ABS_X, 0, max_x, 0, 0);
++	input_set_abs_params(ts->input_dev, ABS_Y, 0, max_y, 0, 0);
++
 +	/* Multi touch */
 +	input_mt_init_slots(ts->input_dev, ts->max_touches, 0);
 +	input_set_abs_params(ts->input_dev, ABS_MT_POSITION_X, 0, max_x, 0, 0);
 +	input_set_abs_params(ts->input_dev, ABS_MT_POSITION_Y, 0, max_y, 0, 0);
++#else
++	/* Single touch */
++	input_set_abs_params(ts->input_dev, ABS_X, 0, max_y, 0, 0);
++	input_set_abs_params(ts->input_dev, ABS_Y, 0, max_x, 0, 0);
++
++	/* Multi touch */
++	input_mt_init_slots(ts->input_dev, ts->max_touches, 0);
++	input_set_abs_params(ts->input_dev, ABS_MT_POSITION_X, 0, max_y, 0, 0);
++	input_set_abs_params(ts->input_dev, ABS_MT_POSITION_Y, 0, max_x, 0, 0);
++#endif /* SITRONIX_SWAP_XY */
 +#else
 +	__set_bit(ABS_X, ts->input_dev->absbit);
 +	__set_bit(ABS_Y, ts->input_dev->absbit);
@@ -2976,13 +2991,6 @@ index 0000000..ade4273
 +	input_set_abs_params(ts->input_dev, ABS_MT_TRACKING_ID, 0, ts->max_touches, 0, 0);
 +	input_set_abs_params(ts->input_dev, ABS_PRESSURE, 0, 255, 0, 0);
 +#endif
-+#ifndef SITRONIX_SWAP_XY
-+	input_set_abs_params(ts->input_dev, ABS_MT_POSITION_X, 0, max_x, 0, 0);
-+	input_set_abs_params(ts->input_dev, ABS_MT_POSITION_Y, 0, max_y, 0, 0);
-+#else
-+	input_set_abs_params(ts->input_dev, ABS_MT_POSITION_X, 0, max_y, 0, 0);
-+	input_set_abs_params(ts->input_dev, ABS_MT_POSITION_Y, 0, max_x, 0, 0);
-+#endif /* SITRONIX_SWAP_XY */
 +
 +	ret = input_register_device(ts->input_dev);
 +	if(ret < 0) {
@@ -3264,7 +3272,7 @@ index 0000000..ade4273
 +MODULE_LICENSE("GPL");
 diff --git a/drivers/stromer/st1633.h b/drivers/stromer/st1633.h
 new file mode 100644
-index 0000000..814623a
+index 0000000..fed6fe7
 --- /dev/null
 +++ b/drivers/stromer/st1633.h
 @@ -0,0 +1,237 @@
@@ -3459,7 +3467,7 @@ index 0000000..814623a
 +#define IOCTL_SMT_HW_RESET               _IOC(_IOC_NONE, SMT_IOC_MAGIC, SMT_HW_RESET,            0)
 +
 +/* #define SITRONIX_SENSOR_KEY */
-+#define SITRONIX_TOUCH_KEY
++/* #define SITRONIX_TOUCH_KEY */
 +/* #define SITRONIX_KEY_BOUNDARY_MANUAL_SPECIFY */
 +
 +typedef struct mtd_structure_s {
