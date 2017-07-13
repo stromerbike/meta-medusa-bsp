@@ -2,7 +2,7 @@
  * Copyright (C) 2017 Christian Duenki, Escatec Switzerland AG
  */
 
-#define DEBUG
+/* #define DEBUG */
 
 #include <linux/fb.h>
 #include <linux/kernel.h>

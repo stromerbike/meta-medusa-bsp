@@ -87,7 +87,7 @@ index 0000000..3098c75
 + * Copyright (C) 2017 Christian Duenki, Escatec Switzerland AG
 + */
 +
-+#define DEBUG
++/* #define DEBUG */
 +
 +#include <linux/fb.h>
 +#include <linux/kernel.h>

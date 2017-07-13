@@ -54,6 +54,10 @@
 		};
 	};
 
+	sound: sound {
+		audio-cpu = <&sai2>;
+	};
+
 	/* LCD background */
 	background: background {
 		compatible = "pwm-backlight";
@@ -128,6 +132,18 @@
 	status = "okay";
 };
 
+/* TLV320ADC3001 audio codec used for TMM */
+&sai2 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_sai2>;
+	assigned-clocks = <&clks IMX6UL_CLK_SAI2_SEL>,
+			<&clks IMX6UL_CLK_SAI2>;
+	assigned-clock-parents = <&clks IMX6UL_CLK_PLL4_AUDIO_DIV>;
+	assigned-clock-rates = <0>, <8000>, <22050>;
+	fsl,sai-mclk-direction-output;
+	status = "okay";
+};
+
 /* Debug port */
 &uart1 {
 	pinctrl-names = "default";
@@ -147,6 +163,7 @@
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_uart3>;
 	fsl,uart-has-rtscts;
+	fsl,dte-mode;
 	status = "okay";
 };
 
@@ -169,6 +186,7 @@
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_uart8>;
 	fsl,uart-has-rtscts;
+	fsl,dte-mode;
 	status = "okay";
 };
 
@@ -426,13 +444,13 @@
 		fsl,pins = <
 			MX6UL_PAD_GPIO1_IO00__GPIO1_IO00	0x79 /* Cadence */
 			MX6UL_PAD_GPIO1_IO01__GPIO1_IO01	0xb0 /* Horn */
-			MX6UL_PAD_GPIO1_IO03__GPIO1_IO03	0xb0 /* Break 2 */
-			MX6UL_PAD_GPIO1_IO04__GPIO1_IO04	0xb0 /* Break 1 */
+			MX6UL_PAD_GPIO1_IO03__GPIO1_IO03	0xb0 /* Break L */
+			MX6UL_PAD_GPIO1_IO04__GPIO1_IO04	0xb0 /* Break R */
 			MX6UL_PAD_GPIO1_IO05__GPIO1_IO05	0xb0 /* AN_mux */
 			MX6UL_PAD_GPIO1_IO09__GPIO1_IO09	0xb0 /* TMM */
 			/* Possible different versions	of the board caused different pin for CAN eanble */
-			/* MX6UL_PAD_SNVS_TAMPER9__GPIO5_IO09	0x79 */
-			MX6UL_PAD_NAND_CE1_B__GPIO4_IO14	0x79 /* CAN sleep */
+			MX6UL_PAD_SNVS_TAMPER9__GPIO5_IO09	0x79 /* CAN silent */
+			/* MX6UL_PAD_NAND_CE1_B__GPIO4_IO14	0x79 */
 			MX6UL_PAD_SD1_CLK__GPIO2_IO17		0x79 /* Brake Pull-Up/Pull-Down */
 			MX6UL_PAD_SNVS_TAMPER3__GPIO5_IO03	0x79 /* Horn Pull-Up/Pull-Down */
 			MX6UL_PAD_CSI_DATA03__GPIO4_IO24	0x79 /* BLE nSHUTD */
@@ -440,11 +458,15 @@
 			MX6UL_PAD_CSI_DATA05__GPIO4_IO26	0x79 /* GNSS sleep ctrl */
 			MX6UL_PAD_CSI_DATA06__GPIO4_IO27	0x79 /* GNSS force on */
 			MX6UL_PAD_CSI_DATA07__GPIO4_IO28	0x79 /* GNSS reset */
+			/* Possible different versions of the board caused different pin for GSM Reset */
 			/* MX6UL_PAD_SNVS_TAMPER1__GPIO5_IO01	0x79 */
 			MX6UL_PAD_SNVS_TAMPER0__GPIO5_IO00	0x79 /* GSM reset */
 			/* Possible different versions of the board caused different pin for GSM Power on */
-			/* MX6UL_PAD_SNVS_TAMPER4__GPIO5_IO04	0x79 */
-			MX6UL_PAD_GPIO1_IO02__GPIO1_IO02	0x79
+			MX6UL_PAD_SNVS_TAMPER5__GPIO5_IO05	0x79 /* GSM_ON */
+			/* MX6UL_PAD_GPIO1_IO02__GPIO1_IO02	0x79 */
+			MX6UL_PAD_UART1_CTS_B__GPIO1_IO18   0x79 /* MPIO1_DIR */
+			MX6UL_PAD_UART1_RTS_B__GPIO1_IO19   0x79 /* MPIO2_DIR */
+			MX6UL_PAD_UART2_RTS_B__GPIO1_IO23   0x79 /* FORCE_OTG1_ID */
 		 >;
 	};
 
@@ -500,10 +522,10 @@
 	/* BLE */
 	pinctrl_uart3: uart3grp {
 		fsl,pins = <
-			MX6UL_PAD_UART3_TX_DATA__UART3_DCE_TX	0x1b0b1
-			MX6UL_PAD_UART3_RX_DATA__UART3_DCE_RX	0x1b0b1
-			MX6UL_PAD_UART3_CTS_B__UART3_DCE_CTS	0x1b0b1
-			MX6UL_PAD_UART3_RTS_B__UART3_DCE_RTS	0x1b0b1
+			MX6UL_PAD_UART3_TX_DATA__UART3_DTE_RX	0x1b0b1
+			MX6UL_PAD_UART3_RX_DATA__UART3_DTE_TX	0x1b0b1
+			MX6UL_PAD_UART3_CTS_B__UART3_DTE_RTS	0x1b0b1
+			MX6UL_PAD_UART3_RTS_B__UART3_DTE_CTS	0x1b0b1
 		>;
 	};
 
@@ -530,6 +552,17 @@
 			MX6UL_PAD_ENET2_TX_EN__UART8_DCE_RX		0x1b0b1
 			MX6UL_PAD_ENET2_TX_CLK__UART8_DCE_CTS	0x1b0b1
 			MX6UL_PAD_ENET2_RX_ER__UART8_DCE_RTS	0x1b0b1
+		>;
+	};
+
+	/* TLV320 ADC */
+	pinctrl_sai2: sai2grp {
+		fsl,pins = <
+			MX6UL_PAD_JTAG_TDI__SAI2_TX_BCLK	0x17088
+			MX6UL_PAD_JTAG_TDO__SAI2_TX_SYNC	0x17088
+			MX6UL_PAD_JTAG_TRST_B__SAI2_TX_DATA	0x11088
+			MX6UL_PAD_JTAG_TCK__SAI2_RX_DATA	0x11088
+			MX6UL_PAD_JTAG_TMS__SAI2_MCLK		0x17088
 		>;
 	};
 
@@ -618,7 +651,6 @@
 			MX6UL_PAD_ENET1_RX_ER__ENET1_RX_ER		0x1b0b0
 			MX6UL_PAD_GPIO1_IO06__ENET1_MDIO		0x1b0b0
 			MX6UL_PAD_GPIO1_IO07__ENET1_MDC			0x1b0b0
-			MX6UL_PAD_SNVS_TAMPER5__GPIO5_IO05		0x17059 /* ENET_Init*/
 		>;
 	};
 
