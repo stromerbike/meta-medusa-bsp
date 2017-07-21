@@ -291,6 +291,14 @@
 	pinctrl-0 =<&pinctrl_i2c3>;
 	clock-frequency = <100000>;
 	status = "okay";
+
+	/* TCA6416A GPIO Expander */
+	gpio@21 {
+		compatible = "ti,tca6416";
+		gpio-controller;
+		#gpio-cells = <2>;
+		reg = <0x21>;
+	};
 };
 
 /* AN multiplexer ctrl */
