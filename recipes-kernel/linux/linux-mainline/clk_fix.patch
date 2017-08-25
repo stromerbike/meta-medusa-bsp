@@ -19,14 +19,27 @@ index 6bb7d9c..ee474c5 100644
  
  	parent = imx_soc_device_init();
  	if (parent == NULL)
-@@ -68,6 +71,11 @@ static void __init imx6ul_init_machine(void)
+@@ -68,6 +71,24 @@ static void __init imx6ul_init_machine(void)
  	imx6ul_enet_init();
  	imx_anatop_init();
  	imx6ul_pm_init();
 +
 +	np = of_find_compatible_node(NULL,NULL,"fsl,imx6ul-iomuxc");
 +	iomux = of_iomap(np, 0);
++
++	/* Set daisy-chain register to avoid uart7 of getting interrupts from rts */
 +	writel_relaxed(0x2,iomux+0x650);
++
++	/* Overwriting mux selection for GPIO1_IO00 (Cadence) */
++	writel_relaxed(0x5,iomux+0x05C);
++
++	/* Overwriting mux selection for GPIO4_IO16 (MPIO_2) */
++	writel_relaxed(0x5,iomux+0x01b8);
++
++	/* Overwriting mux selection for GPIO2_IO16 (MPIO_1) */
++	writel_relaxed(0x5,iomux+0x1bc);
++
++	/* Overwriting mux selection for GPIO2_IO17 (BRAKE_PUPD) */
 +	writel_relaxed(0x5,iomux+0x1C0);
  }
  
