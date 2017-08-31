@@ -1,5 +1,5 @@
 diff --git a/drivers/Kconfig b/drivers/Kconfig
-index e1e2066..662b0ab 100644
+index ba2901e76769..2bfbf104c650 100644
 --- a/drivers/Kconfig
 +++ b/drivers/Kconfig
 @@ -12,6 +12,8 @@ source "drivers/mtd/Kconfig"
@@ -12,7 +12,7 @@ index e1e2066..662b0ab 100644
  
  source "drivers/pnp/Kconfig"
 diff --git a/drivers/Makefile b/drivers/Makefile
-index 53abb4a..0124cf0 100644
+index cfabd141dba2..0d91c8a03228 100644
 --- a/drivers/Makefile
 +++ b/drivers/Makefile
 @@ -8,6 +8,8 @@
@@ -26,7 +26,7 @@ index 53abb4a..0124cf0 100644
  # GPIO must come after pinctrl as gpios may need to mux pins etc
 diff --git a/drivers/stromer/Kconfig b/drivers/stromer/Kconfig
 new file mode 100644
-index 0000000..428465c
+index 000000000000..428465c13f1f
 --- /dev/null
 +++ b/drivers/stromer/Kconfig
 @@ -0,0 +1,37 @@
@@ -69,7 +69,7 @@ index 0000000..428465c
 +endif #STROMER_DP
 diff --git a/drivers/stromer/Makefile b/drivers/stromer/Makefile
 new file mode 100644
-index 0000000..b4feb38
+index 000000000000..b4feb388e860
 --- /dev/null
 +++ b/drivers/stromer/Makefile
 @@ -0,0 +1,4 @@
@@ -79,7 +79,7 @@ index 0000000..b4feb38
 +obj-$(CONFIG_ST7789_SPI)           += fb_imx6_st7789_spi.o
 diff --git a/drivers/stromer/fb_imx6.h b/drivers/stromer/fb_imx6.h
 new file mode 100644
-index 0000000..3098c75
+index 000000000000..13be4b5037dc
 --- /dev/null
 +++ b/drivers/stromer/fb_imx6.h
 @@ -0,0 +1,54 @@
@@ -139,7 +139,7 @@ index 0000000..3098c75
 +};
 diff --git a/drivers/stromer/fb_imx6_lcdif.c b/drivers/stromer/fb_imx6_lcdif.c
 new file mode 100644
-index 0000000..0062520
+index 000000000000..006252042d2d
 --- /dev/null
 +++ b/drivers/stromer/fb_imx6_lcdif.c
 @@ -0,0 +1,1015 @@
@@ -1160,7 +1160,7 @@ index 0000000..0062520
 +MODULE_LICENSE("GPL");
 diff --git a/drivers/stromer/fb_imx6_st7789_spi.c b/drivers/stromer/fb_imx6_st7789_spi.c
 new file mode 100644
-index 0000000..8dad043
+index 000000000000..8dad043231ab
 --- /dev/null
 +++ b/drivers/stromer/fb_imx6_st7789_spi.c
 @@ -0,0 +1,468 @@
@@ -1634,7 +1634,7 @@ index 0000000..8dad043
 +MODULE_LICENSE("GPL");
 diff --git a/drivers/stromer/ili2116.c b/drivers/stromer/ili2116.c
 new file mode 100644
-index 0000000..ae5014c
+index 000000000000..ae5014ccbae2
 --- /dev/null
 +++ b/drivers/stromer/ili2116.c
 @@ -0,0 +1,469 @@
@@ -2109,7 +2109,7 @@ index 0000000..ae5014c
 +MODULE_LICENSE("GPL");
 diff --git a/drivers/stromer/ili2116.h b/drivers/stromer/ili2116.h
 new file mode 100644
-index 0000000..dad4765
+index 000000000000..dad47656ac25
 --- /dev/null
 +++ b/drivers/stromer/ili2116.h
 @@ -0,0 +1,11 @@
@@ -2126,7 +2126,7 @@ index 0000000..dad4765
 +#endif
 diff --git a/drivers/stromer/st1633.c b/drivers/stromer/st1633.c
 new file mode 100644
-index 0000000..bff064b
+index 000000000000..bff064bc6ad6
 --- /dev/null
 +++ b/drivers/stromer/st1633.c
 @@ -0,0 +1,1140 @@
@@ -3272,7 +3272,7 @@ index 0000000..bff064b
 +MODULE_LICENSE("GPL");
 diff --git a/drivers/stromer/st1633.h b/drivers/stromer/st1633.h
 new file mode 100644
-index 0000000..fed6fe7
+index 000000000000..fed6fe788f35
 --- /dev/null
 +++ b/drivers/stromer/st1633.h
 @@ -0,0 +1,237 @@

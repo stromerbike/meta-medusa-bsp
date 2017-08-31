@@ -1,5 +1,5 @@
 diff --git a/arch/arm/mach-imx/mach-imx6ul.c b/arch/arm/mach-imx/mach-imx6ul.c
-index 6bb7d9c..ee474c5 100644
+index 6cb8a22b617d..b25f46114aed 100644
 --- a/arch/arm/mach-imx/mach-imx6ul.c
 +++ b/arch/arm/mach-imx/mach-imx6ul.c
 @@ -10,6 +10,7 @@
@@ -10,7 +10,7 @@ index 6bb7d9c..ee474c5 100644
  #include <linux/phy.h>
  #include <linux/regmap.h>
  #include <asm/mach/arch.h>
-@@ -59,6 +60,8 @@ static inline void imx6ul_enet_init(void)
+@@ -60,6 +61,8 @@ static inline void imx6ul_enet_init(void)
  static void __init imx6ul_init_machine(void)
  {
  	struct device *parent;
@@ -19,7 +19,7 @@ index 6bb7d9c..ee474c5 100644
  
  	parent = imx_soc_device_init();
  	if (parent == NULL)
-@@ -68,6 +71,24 @@ static void __init imx6ul_init_machine(void)
+@@ -69,6 +72,24 @@ static void __init imx6ul_init_machine(void)
  	imx6ul_enet_init();
  	imx_anatop_init();
  	imx6ul_pm_init();
