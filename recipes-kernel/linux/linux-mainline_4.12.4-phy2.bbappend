@@ -13,6 +13,8 @@ FILESEXTRAPATHS_append := "${THISDIR}/linux-mainline:"
 
 SRC_URI += " file://config_modification.cfg"
 SRC_URI += " file://imx6ul-medusa.dts"
+SRC_URI += " file://imx6ul_dtsi.patch"
+# SRC_URI += " file://lsm6dsl.patch"
 SRC_URI += " file://clk_fix.patch"
 SRC_URI += " file://ili2116_st7789v.patch"
 SRC_URI += " file://bootlogo.patch"

@@ -1,0 +1,15 @@
+diff --git a/arch/arm/boot/dts/imx6ul.dtsi b/arch/arm/boot/dts/imx6ul.dtsi
+index cda5e9e..f6befa5 100644
+--- a/arch/arm/boot/dts/imx6ul.dtsi
++++ b/arch/arm/boot/dts/imx6ul.dtsi
+@@ -34,8 +34,8 @@
+ 		gpio4 = &gpio5;
+ 		i2c0 = &i2c1;
+ 		i2c1 = &i2c2;
+-		i2c2 = &i2c3;
+-		i2c3 = &i2c4;
++		i2c2 = &i2c4;
++		i2c3 = &i2c3;
+ 		mmc0 = &usdhc1;
+ 		mmc1 = &usdhc2;
+ 		serial0 = &uart1;
