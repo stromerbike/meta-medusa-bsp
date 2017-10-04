@@ -19,7 +19,7 @@ index 6cb8a22b617d..b25f46114aed 100644
  
  	parent = imx_soc_device_init();
  	if (parent == NULL)
-@@ -69,6 +72,24 @@ static void __init imx6ul_init_machine(void)
+@@ -69,6 +72,36 @@ static void __init imx6ul_init_machine(void)
  	imx6ul_enet_init();
  	imx_anatop_init();
  	imx6ul_pm_init();
@@ -33,11 +33,23 @@ index 6cb8a22b617d..b25f46114aed 100644
 +	/* Overwriting mux selection for GPIO1_IO00 (Cadence) */
 +	writel_relaxed(0x5,iomux+0x05C);
 +
++	/* Overwriting mux selection for GPIO2_IO16 (MPIO_1) */
++	writel_relaxed(0x5,iomux+0x1bc);
++
 +	/* Overwriting mux selection for GPIO4_IO16 (MPIO_2) */
 +	writel_relaxed(0x5,iomux+0x01b8);
 +
-+	/* Overwriting mux selection for GPIO2_IO16 (MPIO_1) */
-+	writel_relaxed(0x5,iomux+0x1bc);
++	/* Overwriting mux selection for GPIO1_IO18 (MPIO1_DIR) */
++	writel_relaxed(0x5,iomux+0x008c);
++
++	/* Overwriting mux selection for GPIO1_IO19 (MPIO2_DIR) */
++	writel_relaxed(0x5,iomux+0x0090);
++
++	/* Overwriting mux selection for GPIO4_IO18 (I2C4_PU) */
++	writel_relaxed(0x5,iomux+0x01D8);
++
++	/* Overwriting mux selection for GPIO2_IO19 (I2C4_ON) */
++	writel_relaxed(0x5,iomux+0x01C8);
 +
 +	/* Overwriting mux selection for GPIO2_IO17 (BRAKE_PUPD) */
 +	writel_relaxed(0x5,iomux+0x1C0);
