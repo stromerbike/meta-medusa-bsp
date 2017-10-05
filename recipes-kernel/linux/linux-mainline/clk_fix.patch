@@ -45,10 +45,10 @@ index 6cb8a22b617d..b25f46114aed 100644
 +	/* Overwriting mux selection for GPIO1_IO19 (MPIO2_DIR) */
 +	writel_relaxed(0x5,iomux+0x0090);
 +
-+	/* Overwriting mux selection for GPIO4_IO18 (I2C4_PU) */
++	/* Overwriting mux selection for GPIO4_IO18 (I2C4_ON) */
 +	writel_relaxed(0x5,iomux+0x01D8);
 +
-+	/* Overwriting mux selection for GPIO2_IO19 (I2C4_ON) */
++	/* Overwriting mux selection for GPIO2_IO19 (I2C4_PU) */
 +	writel_relaxed(0x5,iomux+0x01C8);
 +
 +	/* Overwriting mux selection for GPIO2_IO17 (BRAKE_PUPD) */
