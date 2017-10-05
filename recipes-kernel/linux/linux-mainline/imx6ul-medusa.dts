@@ -318,11 +318,11 @@
 	status = "okay";
 
 	/* TCA6416A GPIO Expander */
-	gpio@21 {
+	gpio@20 {
 		compatible = "ti,tca6416";
 		gpio-controller;
 		#gpio-cells = <2>;
-		reg = <0x21>;
+		reg = <0x20>;
 	};
 };
 
