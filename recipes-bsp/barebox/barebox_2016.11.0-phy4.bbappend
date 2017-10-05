@@ -26,6 +26,7 @@ do_install_append() {
 
 python do_env_append_imx6ul-medusa() {
     env_add(d, "nv/autoboot_timeout", "0\n")
+    env_add(d, "nv/vt.global_cursor_default", "0\n")
 
     env_rm(d, "expansions/imx6qdl-mira-enable-lvds")
     env_rm(d, "expansions/imx6qdl-mira-peb-eval-01")
@@ -48,10 +49,10 @@ mkdir mnt/rootfs
 
 if [ $state.partition -eq 0 ]; then
 mount /dev/nand0.root.ubi.part0 mnt/rootfs
-global.linux.bootargs.dyn.root="root=ubi0:part0 ubi.mtd=root rootfstype=ubifs rw fsck.make=skip quiet"
+global.linux.bootargs.dyn.root="root=ubi0:part0 ubi.mtd=root rootfstype=ubifs rw vt.global_cursor_default=0 fsck.make=skip quiet"
 else
 mount /dev/nand0.root.ubi.part1 mnt/rootfs
-global.linux.bootargs.dyn.root="root=ubi0:part1 ubi.mtd=root rootfstype=ubifs rw fsck.make=skip quiet"
+global.linux.bootargs.dyn.root="root=ubi0:part1 ubi.mtd=root rootfstype=ubifs rw vt.global_cursor_default=0 fsck.make=skip quiet"
 fi
 
 global.bootm.image="/mnt/rootfs/boot/zImage"

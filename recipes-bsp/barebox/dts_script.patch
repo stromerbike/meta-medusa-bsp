@@ -86,9 +86,9 @@ index 65a9365..f16ea96 100644
  	};
  };
  
-+&i2c4 {
++&i2c3 {
 +	pinctrl-names = "default";
-+	pinctrl-0 = <&pinctrl_i2c4>;
++	pinctrl-0 = <&pinctrl_i2c3>;
 +	clock-frequency = <100000>;
 +	status = "okay";
 +};
@@ -222,10 +222,10 @@ index 65a9365..f16ea96 100644
 -				MX6UL_PAD_UART1_RTS_B__GPIO1_IO19       0x17059 /* SD1 CD */
 -			>;
 -		};
-+	pinctrl_i2c4: i2c4grp {
++	pinctrl_i2c3: i2c3grp {
 +		fsl,pins = <
-+			MX6UL_PAD_ENET2_RX_EN__I2C4_SCL		0x4001b8b0
-+			MX6UL_PAD_ENET2_TX_DATA0__I2C4_SDA	0x4001b8b0
++			MX6UL_PAD_ENET2_RX_DATA0__I2C3_SCL	0x4001b8b0
++			MX6UL_PAD_ENET2_RX_DATA1__I2C3_SDA	0x4001b8b0
 +		>;
 +	};
 +
