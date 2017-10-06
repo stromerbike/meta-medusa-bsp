@@ -307,6 +307,8 @@
 		gpio-controller;
 		#gpio-cells = <2>;
 		reg = <0x20>;
+		interrupt-parent = <&gpio4>;
+		interrupts = <27 IRQ_TYPE_NONE>;
 	};
 };
 
@@ -323,6 +325,8 @@
 		gpio-controller;
 		#gpio-cells = <2>;
 		reg = <0x20>;
+		interrupt-parent = <&gpio1>;
+		interrupts = <0 IRQ_TYPE_EDGE_FALLING>;
 	};
 };
 
