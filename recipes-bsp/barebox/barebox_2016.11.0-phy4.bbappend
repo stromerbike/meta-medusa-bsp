@@ -43,9 +43,19 @@ python do_env_append_imx6ul-medusa() {
 
 [ ! -e /dev/nand0.root.ubi ] && ubiattach /dev/nand0.root
 
+# Perform automatic update
+if [ $state.update -eq 1 ] || [ $state.barebox -eq 1 ]; then
+./env/update
+fi
+
 # Detect NAND and mount partition
 detect -a
 mkdir mnt/rootfs
+
+# Remove UART8 from DTB
+if [ $state.uart8 -eq 0 ]; then
+of_fixup_status -d /soc/aips-bus@02000000/spba-bus@02000000/serial@02024000/
+fi
 
 if [ $state.partition -eq 0 ]; then
 mount /dev/nand0.root.ubi.part0 mnt/rootfs
@@ -137,6 +147,73 @@ global.bootm.oftree="/mnt/rootfs/boot/imx6ul-medusa.dtb"
 
 # Memory write control
 #spi -w 9 0x2c 0x00
+""")
+
+    env_add(d, "update",
+"""#!/bin/sh
+echo ========= Update process =============
+i2c_write -b 1 -a 0x20 -r 6 -v 0xfe
+sleep 0.3
+i2c_write -b 1 -a 0x20 -r 2 -v 0xff
+sleep 0.5
+i2c_write -b 1 -a 0x20 -r 7 -v 0xfb
+sleep 0.3
+i2c_write -b 1 -a 0x20 -r 3 -v 0xff
+sleep 1
+otg.mode=host
+
+# Wait is skipped in automatic update
+if [ $state.update -eq 0 ] && [ $state.barebox -eq 0 ]; then
+readline "Stick USB and press any key to continue..." var
+fi
+
+usb
+sleep 2
+mount /dev/disk0.0
+
+echo ============ Barebox =================
+barebox_update -y -t nand /mnt/disk0.0/barebox.bin
+
+# Perform only Barebox update and boot
+if [ $state.barebox -eq 1 ]; then
+state.barebox=0
+state -s
+reset
+fi
+
+# Format and partition are skipped in automatic update
+if [ $state.update -eq 0 ]; then
+echo ============== Format ================
+ubiformat /dev/nand0.root
+sleep 2
+
+echo ============ Partitions ==============
+detect -a
+sleep 2
+ubimkvol -t dynamic /dev/nand0.root.ubi part0 192M
+ubimkvol -t dynamic /dev/nand0.root.ubi part1 192M
+ubimkvol -t dynamic /dev/nand0.root.ubi data0 48M
+ubimkvol -t dynamic /dev/nand0.root.ubi data1 48M
+fi
+
+echo ============== Linux =================
+sleep 2
+detect -a
+echo "Part0 (copy)..."
+cp -v /mnt/disk0.0/medusa-image-imx6ul-medusa-escatec.ubifs /dev/nand0.root.ubi.part0
+echo "Part1 (copy)..."
+cp -v /mnt/disk0.0/medusa-image-imx6ul-medusa-stromer.ubifs /dev/nand0.root.ubi.part1
+
+echo ======= Update end and boot ==========
+state.partition=0
+state.update=0
+state -s
+
+if [ $state.update -eq 1 ]; then
+reset
+else
+boot nand
+fi
 """)
 }
 
