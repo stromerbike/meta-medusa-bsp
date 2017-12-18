@@ -25,9 +25,13 @@ start)
 	echo "1" > /sys/class/gpio/gpio133/value
 	sleep 0.1
 	echo "0" > /sys/class/gpio/gpio133/value
+	sleep 0.5
+	modprobe imx6ul_mod_uart
 ;;
 
 stop)
+	# Remove uart driver
+	rmmod imx6ul_mod_uart
 	# Disable 3v7 voltage
 	echo "0" > /sys/class/gpio/gpio497/value
 ;;

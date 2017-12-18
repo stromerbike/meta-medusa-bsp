@@ -76,7 +76,7 @@ index 65a9365..9b841a6 100644
 +			reg = <0x2c 0x4>;
 +			type = "enum32";
 +			names = "0", "1";
-+			default = <0x0>;
++			default = <0x1>;
 +		};
 +
 +		label {

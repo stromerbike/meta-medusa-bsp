@@ -13,9 +13,11 @@ FILESEXTRAPATHS_append := "${THISDIR}/linux-mainline:"
 
 SRC_URI += " file://config_modification.cfg"
 SRC_URI += " file://imx6ul-medusa.dts"
+# SRC_URI += " file://lsm6dsl.patch"
 SRC_URI += " file://clk_fix.patch"
 SRC_URI += " file://ili2116_st7789v.patch"
 SRC_URI += " file://bootlogo.patch"
+SRC_URI += " file://gsm_uart.patch"
 
 # Disable autoboot for specified modules
 # led driver
@@ -59,5 +61,7 @@ KERNEL_MODULE_PROBECONF += " bmp280-i2c"
 module_conf_bmp280-i2c = "blacklist bmp280-i2c"
 KERNEL_MODULE_PROBECONF += " bmp280-spi"
 module_conf_bmp280-spi = "blacklist bmp280-spi"
+KERNEL_MODULE_PROBECONF += " imx6ul_mod_uart"
+module_conf_bmp280-spi = "blacklist imx6ul_mod_uart"
 
 COMPATIBLE_MACHINE .= "|imx6ul-medusa"

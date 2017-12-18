@@ -1029,15 +1029,23 @@ static int sitronix_i2c_write_bytes(struct i2c_client *client, u8 *txbuf, int le
 static int st1633_i2c_remove(struct i2c_client *client)
 {
 	struct sitronix_ts_data_s *ts = i2c_get_clientdata(client);
+
+	/* Free IRQ */
 	if (ts->use_irq) {
 		free_irq(client->irq, ts);
 	} else {
 		hrtimer_cancel(&ts->timer);
 	}
+	/* Free IRQ gpio */
+	if (ts->irq_gpio != 0) {
+		gpio_free(ts->irq_gpio);
+	}
+
 	input_unregister_device(ts->input_dev);
 #if defined(SITRONIX_SENSOR_KEY) || defined (SITRONIX_TOUCH_KEY)
 	input_unregister_device(ts->keyevent_input);
 #endif /* defined(SITRONIX_SENSOR_KEY) || defined (SITRONIX_TOUCH_KEY) */
+
 	kfree(ts);
 
 	return 0;
