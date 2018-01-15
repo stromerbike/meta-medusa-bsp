@@ -61,7 +61,9 @@ KERNEL_MODULE_PROBECONF += " bmp280-i2c"
 module_conf_bmp280-i2c = "blacklist bmp280-i2c"
 KERNEL_MODULE_PROBECONF += " bmp280-spi"
 module_conf_bmp280-spi = "blacklist bmp280-spi"
+
+# gsm uart driver
 KERNEL_MODULE_PROBECONF += " imx6ul_mod_uart"
-module_conf_bmp280-spi = "blacklist imx6ul_mod_uart"
+module_conf_imx6ul_mod_uart = "blacklist imx6ul_mod_uart"
 
 COMPATIBLE_MACHINE .= "|imx6ul-medusa"
