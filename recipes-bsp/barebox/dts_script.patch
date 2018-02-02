@@ -1,8 +1,8 @@
 diff --git a/arch/arm/dts/imx6ul-phytec-phycore-som.dts b/arch/arm/dts/imx6ul-phytec-phycore-som.dts
-index 65a9365..f16ea96 100644
+index 65a9365..9b841a6 100644
 --- a/arch/arm/dts/imx6ul-phytec-phycore-som.dts
 +++ b/arch/arm/dts/imx6ul-phytec-phycore-som.dts
-@@ -33,6 +33,72 @@
+@@ -33,6 +33,131 @@
  			status = "disabled";
  		};
  	};
@@ -13,7 +13,7 @@ index 65a9365..f16ea96 100644
 +		backend = &eeprom;
 +		backend-type = "raw";
 +		backend-storage-type = "direct";
-+		backend-stridesize = <0x53>;
++		backend-stridesize = <0x70>;
 +
 +		timeout {
 +			reg = <0x00 0x1>;
@@ -27,7 +27,66 @@ index 65a9365..f16ea96 100644
 +			names = "0", "1";
 +			default = <0x0>;
 +		};
-+	};
++
++		order {
++			reg = <0x05 0x9>;
++			type = "string";
++			default = "000000000";
++		};
++
++		serial {
++			reg = <0x0e 0x6>;
++			type = "string";
++			default = "000000";
++		};
++
++		item {
++			reg = <0x14 0x7>;
++			type = "string";
++			default = "0000000";
++		};
++
++		revision {
++			reg = <0x1b 0x3>;
++			type = "string";
++			default = "000";
++		};
++
++		date {
++			reg = <0x1e 0x6>;
++			type = "string";
++			default = "000000";
++		};
++
++		update {
++			reg = <0x24 0x4>;
++			type = "enum32";
++			names = "0", "1";
++			default = <0x0>;
++		};
++
++		barebox {
++			reg = <0x28 0x4>;
++			type = "enum32";
++			names = "0", "1";
++			default = <0x0>;
++		};
++
++		uart8 {
++			reg = <0x2c 0x4>;
++			type = "enum32";
++			names = "0", "1";
++			default = <0x1>;
++		};
++
++		label {
++			reg = <0x30 0x14>;
++			type = "string";
++			default = "000000-0000000-00000";
++		};
++
++
++};
 +
 +	regulators {
 +		compatible = "simple-bus";
@@ -75,7 +134,7 @@ index 65a9365..f16ea96 100644
  };
  
  &fec1 {
-@@ -84,12 +150,27 @@
+@@ -84,12 +209,27 @@
  	clock-frequency = <100000>;
  	status = "okay";
  
@@ -104,7 +163,7 @@ index 65a9365..f16ea96 100644
  &uart1 {
  	pinctrl-names = "default";
  	pinctrl-0 = <&pinctrl_uart1>;
-@@ -116,70 +197,110 @@
+@@ -116,70 +256,110 @@
  	};
  };
  

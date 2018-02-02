@@ -241,7 +241,7 @@ int st7789_init_display(void)
 	 * VGH = 13.26V
 	 * VGL = -10.43V
 	 */
-	st7789_write_reg(GCTRL, 0x35);
+	st7789_write_reg(GCTRL, 0x70);
 
 	/* VCOM = 1.425 V */
 	st7789_write_reg(VCOMS, 0x35);

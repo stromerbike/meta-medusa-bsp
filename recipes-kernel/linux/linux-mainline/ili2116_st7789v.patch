@@ -1407,7 +1407,7 @@ index 000000000000..8dad043231ab
 +	 * VGH = 13.26V
 +	 * VGL = -10.43V
 +	 */
-+	st7789_write_reg(GCTRL, 0x35);
++	st7789_write_reg(GCTRL, 0x70);
 +
 +	/* VCOM = 1.425 V */
 +	st7789_write_reg(VCOMS, 0x35);
@@ -2129,7 +2129,7 @@ new file mode 100644
 index 000000000000..bff064bc6ad6
 --- /dev/null
 +++ b/drivers/stromer/st1633.c
-@@ -0,0 +1,1140 @@
+@@ -0,0 +1,1147 @@
 +/*
 + * Copyright (C) 2017 Christian Duenki, Escatec Switzerland AG
 + * christian.duenki@escatec.com
@@ -3161,11 +3161,18 @@ index 000000000000..bff064bc6ad6
 +static int st1633_i2c_remove(struct i2c_client *client)
 +{
 +	struct sitronix_ts_data_s *ts = i2c_get_clientdata(client);
++
++	/* Free IRQ */
 +	if (ts->use_irq) {
 +		free_irq(client->irq, ts);
 +	} else {
 +		hrtimer_cancel(&ts->timer);
 +	}
++	/* Free IRQ gpio */
++	if (ts->irq_gpio != 0) {
++		gpio_free(ts->irq_gpio);
++	}
++
 +	input_unregister_device(ts->input_dev);
 +#if defined(SITRONIX_SENSOR_KEY) || defined (SITRONIX_TOUCH_KEY)
 +	input_unregister_device(ts->keyevent_input);

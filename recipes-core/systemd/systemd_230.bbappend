@@ -1,4 +1,5 @@
 
+PACKAGECONFIG_append = " networkd"
 PACKAGECONFIG[backlight] = "--disable-backlight"
 PACKAGECONFIG[timedated] = "--disable-timedated"
 PACKAGECONFIG[timesyncd] = "--disable-timesyncd"

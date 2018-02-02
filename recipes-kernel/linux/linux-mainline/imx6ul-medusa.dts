@@ -175,8 +175,11 @@
 
 /* GSM */
 &uart8 {
-	pinctrl-names = "default";
-	pinctrl-0 = <&pinctrl_uart8>;
+	compatible = "fsl,imx6ul-mod-uart";
+	pinctrl-names = "default", "gpio", "uart";
+	pinctrl-0 = <&pinctrl_uart8_default>;
+	pinctrl-1 = <&pinctrl_uart8_default>;
+	pinctrl-2 = <&pinctrl_uart8_uart>;
 	fsl,uart-has-rtscts;
 	fsl,dte-mode;
 	status = "okay";
@@ -444,7 +447,7 @@
 	pinctrl-name = "default";
 	pinctrl-0 = <&pinctrl_hog>;
 
-	imx6ul-medusa {
+	/* imx6ul-medusa { */
 		/* Input, Output and ADC GPIO */
 		pinctrl_hog: hoggrp {
 			fsl,pins = <
@@ -546,7 +549,16 @@
 		};
 
 		/* GSM */
-		pinctrl_uart8: uart8grp {
+		pinctrl_uart8_default: uart8grp {
+			fsl,pins = <
+				MX6UL_PAD_ENET2_TX_DATA1__GPIO2_IO12	0x13000
+				MX6UL_PAD_ENET2_TX_EN__GPIO2_IO13		0x13000
+				MX6UL_PAD_ENET2_TX_CLK__GPIO2_IO14		0x13000
+				MX6UL_PAD_ENET2_RX_ER__GPIO2_IO15		0x13000
+			>;
+		};
+
+		pinctrl_uart8_uart: uart8uartgrp {
 			fsl,pins = <
 				MX6UL_PAD_ENET2_TX_DATA1__UART8_DTE_RX	0x1b0b1
 				MX6UL_PAD_ENET2_TX_EN__UART8_DTE_TX		0x1b0b1
@@ -696,5 +708,5 @@
 				MX6UL_PAD_LCD_DATA15__LCDIF_DATA15	0x48
 			>;
 		};
-	};
+	/* }; */
 };
