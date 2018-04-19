@@ -322,7 +322,7 @@
 
 	/* TCA6416A GPIO Expander */
 	gpio@20 {
-		compatible = "ti,tca6416";
+		compatible = "ti,tca6416ext";
 		gpio-controller;
 		#gpio-cells = <2>;
 		reg = <0x20>;

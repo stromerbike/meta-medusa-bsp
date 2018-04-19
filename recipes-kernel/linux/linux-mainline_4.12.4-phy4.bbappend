@@ -17,6 +17,7 @@ SRC_URI += " file://imx6ul-medusa.dts"
 SRC_URI += " file://clk_fix.patch"
 SRC_URI += " file://ili2116_st7789v.patch"
 SRC_URI += " file://bootlogo.patch"
+SRC_URI += " file://ext_gpio.patch"
 SRC_URI += " file://gsm_uart.patch"
 
 # Disable autoboot for specified modules
@@ -61,6 +62,10 @@ KERNEL_MODULE_PROBECONF += " bmp280-i2c"
 module_conf_bmp280-i2c = "blacklist bmp280-i2c"
 KERNEL_MODULE_PROBECONF += " bmp280-spi"
 module_conf_bmp280-spi = "blacklist bmp280-spi"
+
+# external gpio expander driver
+KERNEL_MODULE_PROBECONF += " gpio-pca953x-external"
+module_conf_gpio-pca953x-external = "blacklist gpio-pca953x-external"
 
 # gsm uart driver
 KERNEL_MODULE_PROBECONF += " imx6ul_mod_uart"
