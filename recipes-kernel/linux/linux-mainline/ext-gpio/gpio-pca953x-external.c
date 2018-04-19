@@ -928,6 +928,6 @@ static void __exit pca953x_exit(void)
 }
 module_exit(pca953x_exit);
 
-MODULE_AUTHOR("Oliver Buntschu <oliver.buntschu@stromerbike.com>")
+MODULE_AUTHOR("Oliver Buntschu <oliver.buntschu@stromerbike.com>");
 MODULE_DESCRIPTION("GPIO expander driver for PCA953x");
 MODULE_LICENSE("GPL");
