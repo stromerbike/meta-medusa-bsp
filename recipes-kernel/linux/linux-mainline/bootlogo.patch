@@ -1,5 +1,5 @@
 diff --git a/drivers/video/logo/Kconfig b/drivers/video/logo/Kconfig
-index 0037104..4e1ecf5 100644
+index 0037104d66ac..ae60e16f099d 100644
 --- a/drivers/video/logo/Kconfig
 +++ b/drivers/video/logo/Kconfig
 @@ -82,4 +82,8 @@ config LOGO_M32R_CLUT224
@@ -7,12 +7,12 @@ index 0037104..4e1ecf5 100644
  	default y
  
 +config LOGO_STROMER_CLUT224
-+	bool "Strommer 224-color Linux logo"
++	bool "Stromer 224-color Linux logo"
 +	default y
 +
  endif # LOGO
 diff --git a/drivers/video/logo/Makefile b/drivers/video/logo/Makefile
-index 3b43781..f8ca4bf 100644
+index 3b437813584c..f8ca4bf27c94 100644
 --- a/drivers/video/logo/Makefile
 +++ b/drivers/video/logo/Makefile
 @@ -15,6 +15,7 @@ obj-$(CONFIG_LOGO_SUPERH_MONO)		+= logo_superh_mono.o
@@ -24,32 +24,32 @@ index 3b43781..f8ca4bf 100644
  obj-$(CONFIG_SPU_BASE)			+= logo_spe_clut224.o
  
 diff --git a/drivers/video/logo/logo.c b/drivers/video/logo/logo.c
-index b6bc4a0..59bb5f7 100644
+index 4d50bfd13e7c..0d29701d04e5 100644
 --- a/drivers/video/logo/logo.c
 +++ b/drivers/video/logo/logo.c
 @@ -36,6 +36,8 @@ static int __init fb_logo_late_init(void)
  
- late_initcall(fb_logo_late_init);
+ late_initcall_sync(fb_logo_late_init);
  
 +extern const struct linux_logo logo_stromer_clut224;
 +
  /* logo's are marked __initdata. Use __ref to tell
   * modpost that it is intended that this function uses data
   * marked __initdata.
-@@ -111,6 +113,10 @@ const struct linux_logo * __ref fb_find_logo(int depth)
+@@ -110,6 +112,10 @@ const struct linux_logo * __ref fb_find_logo(int depth)
+ #ifdef CONFIG_LOGO_M32R_CLUT224
  		/* M32R Linux logo */
  		logo = &logo_m32r_clut224;
- #endif
++#endif
 +#ifdef CONFIG_LOGO_STROMER_CLUT224
 +		/* Stromer Linux logo */
 +		logo = &logo_stromer_clut224;
-+#endif
+ #endif
  	}
  	return logo;
- }
 diff --git a/drivers/video/logo/logo_stromer_clut224.ppm b/drivers/video/logo/logo_stromer_clut224.ppm
 new file mode 100644
-index 0000000..ed1cd1b
+index 000000000000..ed1cd1bd35bf
 --- /dev/null
 +++ b/drivers/video/logo/logo_stromer_clut224.ppm
 @@ -0,0 +1,12803 @@
