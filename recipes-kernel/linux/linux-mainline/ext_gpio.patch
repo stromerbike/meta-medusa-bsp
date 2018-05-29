@@ -1,5 +1,5 @@
 diff --git a/drivers/gpio/Kconfig b/drivers/gpio/Kconfig
-index d62751f20cbb..323d164c9342 100644
+index 23ca51ee6b28..dbd5d66acb17 100644
 --- a/drivers/gpio/Kconfig
 +++ b/drivers/gpio/Kconfig
 @@ -761,6 +761,13 @@ config GPIO_PCA953X
@@ -15,7 +15,7 @@ index d62751f20cbb..323d164c9342 100644
 +
  config GPIO_PCA953X_IRQ
  	bool "Interrupt controller support for PCA953x"
- 	depends on GPIO_PCA953X
+ 	depends on GPIO_PCA953X=y
 diff --git a/drivers/gpio/Makefile b/drivers/gpio/Makefile
 index 68b96277d9fa..b83f40d81be9 100644
 --- a/drivers/gpio/Makefile
