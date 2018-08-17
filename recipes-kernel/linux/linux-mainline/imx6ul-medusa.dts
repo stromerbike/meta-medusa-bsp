@@ -244,16 +244,6 @@
 		reg = <0x6b>;
 	};
 
-	/* BMP280 Pressure sensor */
-	pressure@77 {
-		compatible = "bosch,bmp280";
-		reg = <0x77>;
-		temp-measurement-period = <100>;
-		default-oversampling = <2>;
-		vddd-supply = <&reg_pressure_3v3>;
-		vdda-supply = <&reg_pressure_3v3>;
-	};
-
 	leds@35 {
 		compatible = "national,lp5523";
 		reg = <0x35>;
