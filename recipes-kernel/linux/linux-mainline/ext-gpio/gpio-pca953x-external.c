@@ -236,7 +236,7 @@ static int pca953x_read_regs(struct pca953x_chip *chip, int reg, u8 *val)
 
 	ret = chip->read_regs(chip, reg, val);
 	if (ret < 0) {
-		dev_err(&chip->client->dev, "failed reading register\n");
+		dev_info(&chip->client->dev, "failed reading register\n");
 		return ret;
 	}
 

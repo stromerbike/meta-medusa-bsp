@@ -271,7 +271,7 @@ index e69de29bb2d1..2bde6ef54ee3 100644
 +
 +	ret = chip->read_regs(chip, reg, val);
 +	if (ret < 0) {
-+		dev_err(&chip->client->dev, "failed reading register\n");
++		dev_info(&chip->client->dev, "failed reading register\n");
 +		return ret;
 +	}
 +
