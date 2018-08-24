@@ -7,12 +7,6 @@ menuconfig STROMER_DP
 
 if STROMER_DP
 
-config ILI2116_TOUCH
-	tristate "ILI2116 touch controller driver"
-	default m
-	help
-	  ILI2116 Touch controller driver using I2C interfaces
-
 config ST1633_TOUCH
 	tristate "ST1633 touch controller driver"
 	default m
