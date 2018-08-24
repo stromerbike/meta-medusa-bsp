@@ -187,7 +187,7 @@ static int sitronix_get_fw_revision(struct sitronix_ts_data_s *ts)
 		return ret;
 	} else {
 		memcpy(ts->fw_revision, buffer, 4);
-		printk("fw revision (hex) = %x %x %x %x\n", buffer[0], buffer[1], buffer[2], buffer[3]);
+		printk(KERN_INFO "fw revision (hex) = %x %x %x %x\n", buffer[0], buffer[1], buffer[2], buffer[3]);
 	}
 
 	ret = sitronix_i2c_read_bytes(ts->client, FIRMWARE_VERSION, buffer, 1);
@@ -195,7 +195,7 @@ static int sitronix_get_fw_revision(struct sitronix_ts_data_s *ts)
 		printk("read fw version error (%d)\n", ret);
 		return ret;
 	} else {
-		printk("fw version (hex) = %x\n", buffer[0]);
+		printk(KERN_INFO "fw version (hex) = %x\n", buffer[0]);
 	}
 
 	return 0;
@@ -229,9 +229,9 @@ static int sitronix_ts_get_chip_id(struct sitronix_ts_data_s *ts)
 		}
 		ts->Num_X = buffer[1];
 		ts->Num_Y = buffer[2];
-		printk("Chip ID = %d\n", ts->chip_id);
-		printk("Num_X = %d\n", ts->Num_X);
-		printk("Num_Y = %d\n", ts->Num_Y);
+		printk(KERN_INFO "Chip ID = %d\n", ts->chip_id);
+		printk(KERN_INFO "Num_X = %d\n", ts->Num_X);
+		printk(KERN_INFO "Num_Y = %d\n", ts->Num_Y);
 	}
 
 	return 0;
@@ -256,7 +256,7 @@ static int sitronix_get_max_touches(struct sitronix_ts_data_s *ts)
 		if (ts->max_touches > SITRONIX_MAX_SUPPORTED_POINT) {
 			ts->max_touches = SITRONIX_MAX_SUPPORTED_POINT;
 		}
-		printk("max touches = %d \n",ts->max_touches);
+		printk(KERN_INFO "max touches = %d \n",ts->max_touches);
 	}
 	return 0;
 }
@@ -285,7 +285,7 @@ static int sitronix_get_protocol_type(struct sitronix_ts_data_s *ts)
 			ts->pixel_length = PIXEL_DATA_LENGTH_A;
 		}
 
-		printk("i2c protocol = %d \n", ts->touch_protocol_type);
+		printk(KERN_INFO "i2c protocol = %d \n", ts->touch_protocol_type);
 	}
 
 	return 0;
@@ -387,7 +387,7 @@ static int sitronix_ts_get_touch_info(struct sitronix_ts_data_s *ts)
 	if ((ts->fw_revision[0] == 0) && (ts->fw_revision[1] == 0)) {
 		if (ts->touch_protocol_type == SITRONIX_RESERVED_TYPE_0) {
 			ts->touch_protocol_type = SITRONIX_B_TYPE;
-			printk("i2c protocol (revised) = %d \n", ts->touch_protocol_type);
+			printk(KERN_INFO "i2c protocol (revised) = %d \n", ts->touch_protocol_type);
 		}
 	}
 
@@ -396,7 +396,7 @@ static int sitronix_ts_get_touch_info(struct sitronix_ts_data_s *ts)
 	} else if (ts->touch_protocol_type == SITRONIX_B_TYPE) {
 		ts->pixel_length = PIXEL_DATA_LENGTH_B;
 		ts->max_touches = 2;
-		printk("max touches (revised) = %d \n", ts->max_touches);
+		printk(KERN_INFO "max touches (revised) = %d \n", ts->max_touches);
 	}
 
 	return 0;
@@ -538,7 +538,7 @@ static int sitronix_ts_identify(struct sitronix_ts_data_s *ts)
 		if (ret < 0) {
 			return ret;
 		}
-		printk("id (hex) = %x %x %x %x\n", id[0], id[1], id[2], id[3]);
+		printk(KERN_INFO "id (hex) = %x %x %x %x\n", id[0], id[1], id[2], id[3]);
 		if ((id[0] == 1)&&(id[1] == 2)&&(id[2] == 0xb)&&(id[3] == 1)) {
 			return 0;
 		} else {
@@ -713,7 +713,7 @@ static int st1633_i2c_probe(struct i2c_client *client, const struct i2c_device_i
 	pdata = client->dev.platform_data;
 
 	if (NULL == pdata) {
-		printk("No valid platform data available.\n");
+		printk(KERN_INFO "No valid platform data available.\n");
 		oftree = 0;
 	} else {
 		DbgMsg("Switching to oftree mode.\n");
@@ -732,14 +732,14 @@ static int st1633_i2c_probe(struct i2c_client *client, const struct i2c_device_i
 	}
 	sitronix_ts_gpts = ts;
 
-	printk("ST1633 - reading device status.\n");
+	printk(KERN_INFO "ST1633 - reading device status.\n");
 	ret = sitronix_ts_get_device_status(ts, &dev_status);
 	if ((ret < 0) || (dev_status == 0x6)) {
 		dev_err(dev, "ST1633 - invalid device status, probing failed\n");
 		goto err_device_info_error;
 	}
 
-	printk("ST1633 - reading touch info.\n");
+	printk(KERN_INFO "ST1633 - reading touch info.\n");
 	ret = sitronix_ts_get_touch_info(ts);
 	if(ret < 0) {
 		goto err_device_info_error;
@@ -747,7 +747,7 @@ static int st1633_i2c_probe(struct i2c_client *client, const struct i2c_device_i
 
 	ret = sitronix_ts_identify(ts);
 
-	printk("ST1633 - Allocate input device.\n");
+	printk(KERN_INFO "ST1633 - Allocate input device.\n");
 	ts->input_dev = input_allocate_device();
 	if (ts->input_dev == NULL) {
 		dev_err(dev, "Can not allocate memory for input device.\n");
@@ -1133,8 +1133,8 @@ module_i2c_driver(st1633_i2c_driver);
 
 static int __init st1633_i2c_init(void)
 {
-	printk("Sitronix st1633 touch driver %d.%d.%d\n", DRIVER_MAJOR, DRIVER_MINOR, DRIVER_PATCHLEVEL);
-	printk("Release date: %s\n", DRIVER_DATE);
+	printk(KERN_INFO "Sitronix st1633 touch driver %d.%d.%d\n", DRIVER_MAJOR, DRIVER_MINOR, DRIVER_PATCHLEVEL);
+	printk(KERN_INFO "Release date: %s\n", DRIVER_DATE);
 	return i2c_add_driver(&st1633_i2c_driver);
 }
 
