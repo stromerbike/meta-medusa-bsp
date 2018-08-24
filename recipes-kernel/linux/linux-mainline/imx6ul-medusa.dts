@@ -378,7 +378,7 @@
 	pinctrl-0 = <&pinctrl_enet1>;
 	phy-mode = "rmii";
 	phy-handle = <&ethphy0>;
-	status = "okay";
+	status = "disabled";
 
 	mdio: mdio {
 		#address-cells = <1>;
