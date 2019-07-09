@@ -28,14 +28,6 @@ python do_env_append_imx6ul-medusa() {
     env_add(d, "nv/autoboot_timeout", "0\n")
     env_add(d, "nv/vt.global_cursor_default", "0\n")
 
-    env_rm(d, "expansions/imx6qdl-mira-enable-lvds")
-    env_rm(d, "expansions/imx6qdl-mira-peb-eval-01")
-    env_rm(d, "expansions/imx6qdl-phytec-lcd")
-    env_rm(d, "expansions/imx6qdl-phytec-lcd-018-peb-av-02")
-    env_rm(d, "expansions/imx6qdl-phytec-lcd-018-peb-av-02-res")
-    env_rm(d, "expansions/imx6qdl-phytec-peb-wlbt-01")
-    env_rm(d, "boot/nand")
-
     env_add(d, "boot/nand",
 """#!/bin/sh
 
