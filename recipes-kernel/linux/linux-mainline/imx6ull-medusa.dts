@@ -8,11 +8,11 @@
 */
 
 /dts-v1/;
-#include "imx6ul.dtsi"
+#include "imx6ull.dtsi"
 
 / {
-	model = "Phytec phyCORE i.MX6 UltraLite";
-	compatible = "fsl,imx6ul";
+	model = "Phytec phyCORE i.MX6 UltraLite Low Cost";
+	compatible = "fsl,imx6ull";
 
 	/* Set the minimum memory size here and
 	   let the bootloader set the real size */

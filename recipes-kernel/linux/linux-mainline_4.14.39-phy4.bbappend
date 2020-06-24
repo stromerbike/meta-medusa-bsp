@@ -11,14 +11,18 @@ FILESEXTRAPATHS_append := "${THISDIR}/linux-mainline:"
 # LICENSE = "MIT"
 # LIC_FILES_CHKSUM = "file://LICENSE;md5=96af5705d6f64a88e035781ef00e98a8"
 
+KERNEL_DEVICETREE_append = " imx6ull-medusa.dtb"
+
 SRC_URI += " file://config_modification.cfg"
 SRC_URI += " file://imx6ul-medusa.dts"
-# SRC_URI += " file://lsm6dsl.patch"
+SRC_URI += " file://imx6ull-medusa.dts"
 SRC_URI += " file://clk_fix.patch"
 SRC_URI += " file://st1633i_st7789v.patch"
 SRC_URI += " file://bootlogo.patch"
-SRC_URI += " file://ext_gpio.patch"
 SRC_URI += " file://gsm_uart.patch"
+SRC_URI += " file://spi-imx.patch"
+SRC_URI += " file://imx6ull_dts_fix.patch"
+SRC_URI += " file://ext_gpio.patch"
 
 # Disable autoboot for specified modules
 # led driver
@@ -63,12 +67,9 @@ module_conf_bmp280-i2c = "blacklist bmp280-i2c"
 KERNEL_MODULE_PROBECONF += " bmp280-spi"
 module_conf_bmp280-spi = "blacklist bmp280-spi"
 
-# external gpio expander driver
-KERNEL_MODULE_PROBECONF += " gpio-pca953x-external"
-module_conf_gpio-pca953x-external = "blacklist gpio-pca953x-external"
-
 # gsm uart driver
 KERNEL_MODULE_PROBECONF += " imx6ul_mod_uart"
 module_conf_imx6ul_mod_uart = "blacklist imx6ul_mod_uart"
 
 COMPATIBLE_MACHINE .= "|imx6ul-medusa"
+COMPATIBLE_MACHINE .= "|imx6ull-medusa"

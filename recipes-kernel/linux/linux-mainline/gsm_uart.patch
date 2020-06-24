@@ -1,5 +1,5 @@
 diff --git a/drivers/tty/serial/Kconfig b/drivers/tty/serial/Kconfig
-index 5c8850f..276b3a1 100644
+index b788fee..f62f83c 100644
 --- a/drivers/tty/serial/Kconfig
 +++ b/drivers/tty/serial/Kconfig
 @@ -595,6 +595,17 @@ config SERIAL_IMX
@@ -21,10 +21,10 @@ index 5c8850f..276b3a1 100644
  	bool "Console on IMX serial port"
  	depends on SERIAL_IMX=y
 diff --git a/drivers/tty/serial/Makefile b/drivers/tty/serial/Makefile
-index 53c03e0..382bce2 100644
+index 842d185..a0da7b3 100644
 --- a/drivers/tty/serial/Makefile
 +++ b/drivers/tty/serial/Makefile
-@@ -44,6 +44,7 @@ obj-$(CONFIG_SERIAL_SH_SCI) += sh-sci.o
+@@ -45,6 +45,7 @@ obj-$(CONFIG_SERIAL_SH_SCI) += sh-sci.o
  obj-$(CONFIG_SERIAL_SGI_L1_CONSOLE) += sn_console.o
  obj-$(CONFIG_SERIAL_CPM) += cpm_uart/
  obj-$(CONFIG_SERIAL_IMX) += imx.o
@@ -34,10 +34,10 @@ index 53c03e0..382bce2 100644
  obj-$(CONFIG_SERIAL_M32R_SIO) += m32r_sio.o
 diff --git a/drivers/tty/serial/imx6ul_mod_uart.c b/drivers/tty/serial/imx6ul_mod_uart.c
 new file mode 100755
-index 0000000..0090dec
+index 0000000..cdf1596
 --- /dev/null
 +++ b/drivers/tty/serial/imx6ul_mod_uart.c
-@@ -0,0 +1,2289 @@
+@@ -0,0 +1,2296 @@
 +/*
 + * Driver for Motorola/Freescale IMX6UL serial ports
 + *
@@ -2057,12 +2057,16 @@ index 0000000..0090dec
 +		return ret;
 +	}
 +
++	printk("Disable interrupts before requesting them");
 +	/* Disable interrupts before requesting them */
++	printk("...Calling readl_relaxed @0x08h", (sport->port.membase + UCR1));
 +	reg = readl_relaxed(sport->port.membase + UCR1);
 +	reg &= ~(UCR1_ADEN | UCR1_TRDYEN | UCR1_IDEN | UCR1_RRDYEN |
 +		 UCR1_TXMPTYEN | UCR1_RTSDEN);
++	printk("...Calling writel_relaxed");
 +	writel_relaxed(reg, sport->port.membase + UCR1);
 +
++	printk("Applying DTE/DCE configuration");
 +	if (!is_imx1_uart(sport) && sport->dte_mode) {
 +		/*
 +		 * The DCEDTE bit changes the direction of DSR, DCD, DTR and RI
@@ -2074,6 +2078,7 @@ index 0000000..0090dec
 +		if (!(reg & UFCR_DCEDTE))
 +			writel(reg | UFCR_DCEDTE, sport->port.membase + UFCR);
 +
++		printk("Disabling RI and DCD interrupts");
 +		/*
 +		 * Disable UCR3_RI and UCR3_DCD irqs. They are also not
 +		 * enabled later because they cannot be cleared
@@ -2094,8 +2099,10 @@ index 0000000..0090dec
 +		writel(ucr3, sport->port.membase + UCR3);
 +	}
 +
++	printk("Calling clk_disable_unprepare()");
 +	clk_disable_unprepare(sport->clk_ipg);
 +
++	printk("Allocate IRQ(s)");
 +	/*
 +	 * Allocate the IRQ(s) i.MX1 has three interrupts whereas later
 +	 * chips only have one interrupt.

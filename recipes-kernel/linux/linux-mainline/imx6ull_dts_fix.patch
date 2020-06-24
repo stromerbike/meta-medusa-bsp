@@ -1,0 +1,134 @@
+diff --git a/arch/arm/boot/dts/imx6ull-pinfunc-snvs.h b/arch/arm/boot/dts/imx6ull-pinfunc-snvs.h
+new file mode 100644
+index 0000000..f6fb678
+--- /dev/null
++++ b/arch/arm/boot/dts/imx6ull-pinfunc-snvs.h
+@@ -0,0 +1,26 @@
++// SPDX-License-Identifier: GPL-2.0
++/*
++ * Copyright (C) 2016 Freescale Semiconductor, Inc.
++ * Copyright (C) 2017 NXP
++ */
++
++#ifndef __DTS_IMX6ULL_PINFUNC_SNVS_H
++#define __DTS_IMX6ULL_PINFUNC_SNVS_H
++/*
++ * The pin function ID is a tuple of
++ * <mux_reg conf_reg input_reg mux_mode input_val>
++ */
++#define MX6ULL_PAD_BOOT_MODE0__GPIO5_IO10                          0x0000 0x0044 0x0000 0x5 0x0
++#define MX6ULL_PAD_BOOT_MODE1__GPIO5_IO11                          0x0004 0x0048 0x0000 0x5 0x0
++#define MX6ULL_PAD_SNVS_TAMPER0__GPIO5_IO00                        0x0008 0x004C 0x0000 0x5 0x0
++#define MX6ULL_PAD_SNVS_TAMPER1__GPIO5_IO01                        0x000C 0x0050 0x0000 0x5 0x0
++#define MX6ULL_PAD_SNVS_TAMPER2__GPIO5_IO02                        0x0010 0x0054 0x0000 0x5 0x0
++#define MX6ULL_PAD_SNVS_TAMPER3__GPIO5_IO03                        0x0014 0x0058 0x0000 0x5 0x0
++#define MX6ULL_PAD_SNVS_TAMPER4__GPIO5_IO04                        0x0018 0x005C 0x0000 0x5 0x0
++#define MX6ULL_PAD_SNVS_TAMPER5__GPIO5_IO05                        0x001C 0x0060 0x0000 0x5 0x0
++#define MX6ULL_PAD_SNVS_TAMPER6__GPIO5_IO06                        0x0020 0x0064 0x0000 0x5 0x0
++#define MX6ULL_PAD_SNVS_TAMPER7__GPIO5_IO07                        0x0024 0x0068 0x0000 0x5 0x0
++#define MX6ULL_PAD_SNVS_TAMPER8__GPIO5_IO08                        0x0028 0x006C 0x0000 0x5 0x0
++#define MX6ULL_PAD_SNVS_TAMPER9__GPIO5_IO09                        0x002C 0x0070 0x0000 0x5 0x0
++
++#endif /* __DTS_IMX6ULL_PINFUNC_SNVS_H */
+diff --git a/arch/arm/boot/dts/imx6ull.dtsi b/arch/arm/boot/dts/imx6ull.dtsi
+index 0c18291..796ed35 100644
+--- a/arch/arm/boot/dts/imx6ull.dtsi
++++ b/arch/arm/boot/dts/imx6ull.dtsi
+@@ -1,43 +1,57 @@
+-/*
+- * Copyright 2016 Freescale Semiconductor, Inc.
+- *
+- * This file is dual-licensed: you can use it either under the terms
+- * of the GPL or the X11 license, at your option. Note that this dual
+- * licensing only applies to this file, and not this project as a
+- * whole.
+- *
+- *  a) This file is free software; you can redistribute it and/or
+- *     modify it under the terms of the GNU General Public License
+- *     version 2 as published by the Free Software Foundation.
+- *
+- *     This file is distributed in the hope that it will be useful,
+- *     but WITHOUT ANY WARRANTY; without even the implied warranty of
+- *     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+- *     GNU General Public License for more details.
+- *
+- * Or, alternatively,
+- *
+- *  b) Permission is hereby granted, free of charge, to any person
+- *     obtaining a copy of this software and associated documentation
+- *     files (the "Software"), to deal in the Software without
+- *     restriction, including without limitation the rights to use,
+- *     copy, modify, merge, publish, distribute, sublicense, and/or
+- *     sell copies of the Software, and to permit persons to whom the
+- *     Software is furnished to do so, subject to the following
+- *     conditions:
+- *
+- *     The above copyright notice and this permission notice shall be
+- *     included in all copies or substantial portions of the Software.
+- *
+- *     THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+- *     EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+- *     OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+- *     NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+- *     HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+- *     WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+- *     FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+- *     OTHER DEALINGS IN THE SOFTWARE.
+- */
++// SPDX-License-Identifier: (GPL-2.0 OR MIT)
++//
++// Copyright 2016 Freescale Semiconductor, Inc.
+ 
+ #include "imx6ul.dtsi"
+ #include "imx6ull-pinfunc.h"
++#include "imx6ull-pinfunc-snvs.h"
++
++/* Delete UART8 in AIPS-1 (i.MX6UL specific) */
++/delete-node/ &uart8;
++
++&cpu0 {
++	operating-points = <
++		/* kHz	uV */
++		900000	1275000
++		792000	1225000
++		528000	1175000
++		396000	1025000
++		198000	950000
++	>;
++	fsl,soc-operating-points = <
++		/* KHz	uV */
++		900000	1250000
++		792000	1175000
++		528000	1175000
++		396000	1175000
++		198000	1175000
++	>;
++};
++
++/ {
++	soc {
++		aips3: aips-bus@2200000 {
++			compatible = "fsl,aips-bus", "simple-bus";
++			#address-cells = <1>;
++			#size-cells = <1>;
++			reg = <0x02200000 0x100000>;
++			ranges;
++
++			iomuxc_snvs: iomuxc-snvs@2290000 {
++				compatible = "fsl,imx6ull-iomuxc-snvs";
++				reg = <0x02290000 0x4000>;
++			};
++
++			uart8: serial@2288000 {
++				compatible = "fsl,imx6ul-uart",
++					     "fsl,imx6q-uart";
++				reg = <0x02288000 0x4000>;
++				interrupts = <GIC_SPI 40 IRQ_TYPE_LEVEL_HIGH>;
++				clocks = <&clks IMX6UL_CLK_UART8_IPG>,
++					 <&clks IMX6UL_CLK_UART8_SERIAL>;
++				clock-names = "ipg", "per";
++				status = "disabled";
++			};
++		};
++	};
++};
