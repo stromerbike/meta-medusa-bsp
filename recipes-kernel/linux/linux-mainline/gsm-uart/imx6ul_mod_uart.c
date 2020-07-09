@@ -1937,7 +1937,6 @@ static int serial_imx_mod_probe(struct platform_device *pdev)
 	if (IS_ERR(sport->p_default)) {
 		printk("Failed to read default pinctrl settings: %ld", PTR_ERR(sport->p_default));
 	} else {
-		//printk("Successfully read default pinctrl settings: %s", sport->p_default->name);
 		printk("Successfully read default pinctrl settings");
 	}
 	sport->p_init = pinctrl_lookup_state(sport->p_pinctrl,
@@ -1945,7 +1944,6 @@ static int serial_imx_mod_probe(struct platform_device *pdev)
 	if (IS_ERR(sport->p_default)) {
 		printk("Failed to read init pinctrl settings: %ld", PTR_ERR(sport->p_init));
 	} else {
-		//printk("Successfully read init pinctrl settings: %s", sport->p_init->name);
 		printk("Successfully read init pinctrl settings");
 	}
 
@@ -2019,12 +2017,16 @@ static int serial_imx_mod_probe(struct platform_device *pdev)
 		return ret;
 	}
 
+	printk("Disable interrupts before requesting them");
 	/* Disable interrupts before requesting them */
+	printk("...Calling readl_relaxed @0x08h", (sport->port.membase + UCR1));
 	reg = readl_relaxed(sport->port.membase + UCR1);
 	reg &= ~(UCR1_ADEN | UCR1_TRDYEN | UCR1_IDEN | UCR1_RRDYEN |
 		 UCR1_TXMPTYEN | UCR1_RTSDEN);
+	printk("...Calling writel_relaxed");
 	writel_relaxed(reg, sport->port.membase + UCR1);
 
+	printk("Applying DTE/DCE configuration");
 	if (!is_imx1_uart(sport) && sport->dte_mode) {
 		/*
 		 * The DCEDTE bit changes the direction of DSR, DCD, DTR and RI
@@ -2036,6 +2038,7 @@ static int serial_imx_mod_probe(struct platform_device *pdev)
 		if (!(reg & UFCR_DCEDTE))
 			writel(reg | UFCR_DCEDTE, sport->port.membase + UFCR);
 
+		printk("Disabling RI and DCD interrupts");
 		/*
 		 * Disable UCR3_RI and UCR3_DCD irqs. They are also not
 		 * enabled later because they cannot be cleared
@@ -2056,8 +2059,10 @@ static int serial_imx_mod_probe(struct platform_device *pdev)
 		writel(ucr3, sport->port.membase + UCR3);
 	}
 
+	printk("Calling clk_disable_unprepare()");
 	clk_disable_unprepare(sport->clk_ipg);
 
+	printk("Allocate IRQ(s)");
 	/*
 	 * Allocate the IRQ(s) i.MX1 has three interrupts whereas later
 	 * chips only have one interrupt.

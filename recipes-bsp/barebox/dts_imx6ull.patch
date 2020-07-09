@@ -1,0 +1,20 @@
+diff --git a/arch/arm/dts/imx6ull-phytec-phycore-som-nand.dts b/arch/arm/dts/imx6ull-phytec-phycore-som-nand.dts
+index 250524b..3bd0a1f 100644
+--- a/arch/arm/dts/imx6ull-phytec-phycore-som-nand.dts
++++ b/arch/arm/dts/imx6ull-phytec-phycore-som-nand.dts
+@@ -52,3 +52,15 @@
+ &usbotg2 {
+ 	status = "okay";
+ };
++
++&pwm5 {
++	status = "okay";
++};
++
++&background {
++	status = "okay";
++};
++
++&i2c3 {
++	status = "okay";
++};
