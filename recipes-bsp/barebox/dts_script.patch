@@ -1,8 +1,8 @@
 diff --git a/arch/arm/dts/imx6ul-phytec-phycore-som-nand.dts b/arch/arm/dts/imx6ul-phytec-phycore-som-nand.dts
-index 20c0318..803338f 100644
+index 20c03184f..63bade301 100644
 --- a/arch/arm/dts/imx6ul-phytec-phycore-som-nand.dts
 +++ b/arch/arm/dts/imx6ul-phytec-phycore-som-nand.dts
-@@ -52,3 +52,15 @@
+@@ -52,3 +52,19 @@
  &usbotg2 {
  	status = "okay";
  };
@@ -15,13 +15,15 @@ index 20c0318..803338f 100644
 +	status = "okay";
 +};
 +
++&i2c2 {
++	status = "okay";
++};
++
 +&i2c3 {
 +	status = "okay";
 +};
 diff --git a/arch/arm/dts/imx6ul-phytec-phycore-som.dtsi b/arch/arm/dts/imx6ul-phytec-phycore-som.dtsi
-old mode 100644
-new mode 100755
-index 50b9469..4c1a103
+index 50b9469f2..42c20615c 100644
 --- a/arch/arm/dts/imx6ul-phytec-phycore-som.dtsi
 +++ b/arch/arm/dts/imx6ul-phytec-phycore-som.dtsi
 @@ -25,13 +25,51 @@
@@ -80,7 +82,7 @@ index 50b9469..4c1a103
  };
  
  &fec1 {
-@@ -82,29 +120,30 @@
+@@ -82,29 +120,44 @@
  	clock-frequency = <100000>;
  	status = "disabled";
  
@@ -92,37 +94,50 @@ index 50b9469..4c1a103
  };
  
 -&uart1 {
-+&i2c3 {
++&i2c2 {
  	pinctrl-names = "default";
 -	pinctrl-0 = <&pinctrl_uart1>;
-+	pinctrl-0 = <&pinctrl_i2c3>;
++	pinctrl-0 = <&pinctrl_i2c2>;
 +	clock-frequency = <100000>;
  	status = "disabled";
  };
  
 -&usbotg1 {
-+&ecspi1  {
++&i2c3 {
  	pinctrl-names = "default";
 -	pinctrl-0 = <&pinctrl_usb_otg1>;
 -	dr_mode = "otg";
 -	disable-over-current;
--	status = "disabled";
-+	pinctrl-0 = <&pinctrl_ecspi1>;
-+	num-cs = <1>;
-+	cs-gpios = <&gpio3 26 GPIO_ACTIVE_LOW>;
-+	status = "okay";
++	pinctrl-0 = <&pinctrl_i2c3>;
++	clock-frequency = <100000>;
+ 	status = "disabled";
++
++	gpio@20 {
++		compatible = "ti,tca6416";
++		gpio-controller;
++		#gpio-cells = <2>;
++		reg = <0x20>;
++	};
  };
  
 -&usbotg2 {
 -	dr_mode = "host";
 -	disable-over-current;
++&ecspi1  {
++	pinctrl-names = "default";
++	pinctrl-0 = <&pinctrl_ecspi1>;
++	num-cs = <1>;
++	cs-gpios = <&gpio3 26 GPIO_ACTIVE_LOW>;
++	status = "okay";
++};
++
 +&uart1 {
 +	pinctrl-names = "default";
 +	pinctrl-0 = <&pinctrl_uart1>;
  	status = "disabled";
  };
  
-@@ -128,100 +167,115 @@
+@@ -128,100 +181,122 @@
  	};
  };
  
@@ -198,10 +213,10 @@ index 50b9469..4c1a103
 +	};
  
 -	imx6ul-phytec-phycore-som {
-+	pinctrl_i2c3: i2c3grp {
++	pinctrl_i2c2: i2c2grp {
 +		fsl,pins = <
-+			MX6UL_PAD_ENET2_RX_DATA0__I2C3_SCL	0x4001b8b0
-+			MX6UL_PAD_ENET2_RX_DATA1__I2C3_SDA	0x4001b8b0
++			MX6UL_PAD_CSI_HSYNC__I2C2_SCL	0x4001b8b0
++			MX6UL_PAD_CSI_VSYNC__I2C2_SDA	0x4001b8b0
 +		>;
 +	};
  
@@ -219,12 +234,10 @@ index 50b9469..4c1a103
 -				MX6UL_PAD_ENET1_TX_CLK__ENET1_REF_CLK1	0x4001b010
 -			>;
 -		};
-+	pinctrl_ecspi1: ecspi1grp {
++	pinctrl_i2c3: i2c3grp {
 +		fsl,pins = <
-+			MX6UL_PAD_LCD_DATA20__ECSPI1_SCLK	0x1b0b1
-+			MX6UL_PAD_LCD_DATA22__ECSPI1_MOSI	0x1b0b1
-+			MX6UL_PAD_LCD_DATA23__ECSPI1_MISO	0x1b0b1
-+			MX6UL_PAD_LCD_DATA21__ECSPI1_SS0	0x80000000
++			MX6UL_PAD_ENET2_RX_DATA0__I2C3_SCL	0x4001b8b0
++			MX6UL_PAD_ENET2_RX_DATA1__I2C3_SDA	0x4001b8b0
 +		>;
 +	};
  
@@ -247,10 +260,12 @@ index 50b9469..4c1a103
 -				MX6UL_PAD_NAND_DATA07__RAWNAND_DATA07	0x0b0b1
 -			>;
 -		};
-+	pinctrl_uart1: uart1grp {
++	pinctrl_ecspi1: ecspi1grp {
 +		fsl,pins = <
-+			MX6UL_PAD_UART1_TX_DATA__UART1_DCE_TX	0x1b0b1
-+			MX6UL_PAD_UART1_RX_DATA__UART1_DCE_RX	0x1b0b1
++			MX6UL_PAD_LCD_DATA20__ECSPI1_SCLK	0x1b0b1
++			MX6UL_PAD_LCD_DATA22__ECSPI1_MOSI	0x1b0b1
++			MX6UL_PAD_LCD_DATA23__ECSPI1_MISO	0x1b0b1
++			MX6UL_PAD_LCD_DATA21__ECSPI1_SS0	0x80000000
 +		>;
 +	};
  
@@ -258,6 +273,19 @@ index 50b9469..4c1a103
 -			fsl,pins = <
 -				MX6UL_PAD_UART4_TX_DATA__I2C1_SCL	0x4001b8b0
 -				MX6UL_PAD_UART4_RX_DATA__I2C1_SDA	0x4001b8b0
+-			>;
+-		};
++	pinctrl_uart1: uart1grp {
++		fsl,pins = <
++			MX6UL_PAD_UART1_TX_DATA__UART1_DCE_TX	0x1b0b1
++			MX6UL_PAD_UART1_RX_DATA__UART1_DCE_RX	0x1b0b1
++		>;
++	};
+ 
+-		pinctrl_uart1: uart1grp {
+-			fsl,pins = <
+-				MX6UL_PAD_UART1_TX_DATA__UART1_DCE_TX	0x1b0b1
+-				MX6UL_PAD_UART1_RX_DATA__UART1_DCE_RX	0x1b0b1
 -			>;
 -		};
 +	pinctrl_usdhc1: usdhc1grp {
@@ -272,26 +300,14 @@ index 50b9469..4c1a103
 +		>;
 +	};
  
--		pinctrl_uart1: uart1grp {
--			fsl,pins = <
--				MX6UL_PAD_UART1_TX_DATA__UART1_DCE_TX	0x1b0b1
--				MX6UL_PAD_UART1_RX_DATA__UART1_DCE_RX	0x1b0b1
--			>;
--		};
-+	pinctrl_usb_otg1_id: usbotg1idgrp {
-+		fsl,pins = <
-+			MX6UL_PAD_GPIO1_IO00__ANATOP_OTG1_ID	0x17059
-+		>;
-+	};
- 
 -		pinctrl_usb_otg1: usbotg1grp {
 -			fsl,pins = <
 -				MX6UL_PAD_GPIO1_IO00__ANATOP_OTG1_ID	0x17059
 -			>;
 -		};
-+	pinctrl_io: iogrp {
++	pinctrl_usb_otg1_id: usbotg1idgrp {
 +		fsl,pins = <
-+				 MX6UL_PAD_UART2_RTS_B__GPIO1_IO23 0x79 /* Force OTG1 ID */
++			MX6UL_PAD_GPIO1_IO00__ANATOP_OTG1_ID	0x17059
 +		>;
 +	};
  
@@ -306,18 +322,24 @@ index 50b9469..4c1a103
 -				MX6UL_PAD_UART1_RTS_B__GPIO1_IO19       0x17059 /* SD1 CD */
 -			>;
 -		};
++	pinctrl_io: iogrp {
++		fsl,pins = <
++				 MX6UL_PAD_UART2_RTS_B__GPIO1_IO23 0x79 /* Force OTG1 ID */
++		>;
++	};
+ 
+-		pinctrl_usdhc2: usdhc2grp {
 +	pinctrl_pwm5: pwm5grp {
 +		fsl,pins = <
 +			MX6UL_PAD_LCD_DATA18__PWM5_OUT	0x1b0b0
 +		>;
 +	};
- 
--		pinctrl_usdhc2: usdhc2grp {
++
 +	pinctrl_usdhc2: usdhc2grp {
  			fsl,pins = <
  				MX6UL_PAD_NAND_WE_B__USDHC2_CMD     	0x17059
  				MX6UL_PAD_NAND_RE_B__USDHC2_CLK     	0x10059
-@@ -234,7 +288,7 @@
+@@ -234,7 +309,7 @@
  				MX6UL_PAD_NAND_DATA06__USDHC2_DATA6 	0x17059
  				MX6UL_PAD_NAND_DATA07__USDHC2_DATA7 	0x17059
  			>;
@@ -327,7 +349,7 @@ index 50b9469..4c1a103
  };
  
 diff --git a/arch/arm/dts/imx6ul-phytec-state.dtsi b/arch/arm/dts/imx6ul-phytec-state.dtsi
-index a21cb49..f141c93 100644
+index a21cb49f0..f141c933d 100644
 --- a/arch/arm/dts/imx6ul-phytec-state.dtsi
 +++ b/arch/arm/dts/imx6ul-phytec-state.dtsi
 @@ -9,73 +9,102 @@
@@ -487,7 +509,7 @@ index a21cb49..f141c93 100644
  };
 +#endif
 diff --git a/defaultenv/defaultenv-2-base/bin/init b/defaultenv/defaultenv-2-base/bin/init
-index 7af3c7d..a3e63d9 100644
+index 8d02e3d3a..2a71bc90c 100644
 --- a/defaultenv/defaultenv-2-base/bin/init
 +++ b/defaultenv/defaultenv-2-base/bin/init
 @@ -1,5 +1,14 @@

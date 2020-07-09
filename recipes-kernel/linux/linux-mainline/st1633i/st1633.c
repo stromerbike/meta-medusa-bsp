@@ -542,7 +542,7 @@ static int sitronix_ts_identify(struct sitronix_ts_data_s *ts)
 		if ((id[0] == 1)&&(id[1] == 2)&&(id[2] == 0xb)&&(id[3] == 1)) {
 			return 0;
 		} else {
-			printk("Error: It is not Sitronix IC\n");
+			printk(KERN_INFO "Info: ID does not fit to Sitronix IC\n");
 			return -1;
 		}
 	} else {
@@ -1045,7 +1045,6 @@ static int st1633_i2c_remove(struct i2c_client *client)
 #if defined(SITRONIX_SENSOR_KEY) || defined (SITRONIX_TOUCH_KEY)
 	input_unregister_device(ts->keyevent_input);
 #endif /* defined(SITRONIX_SENSOR_KEY) || defined (SITRONIX_TOUCH_KEY) */
-
 	kfree(ts);
 
 	return 0;

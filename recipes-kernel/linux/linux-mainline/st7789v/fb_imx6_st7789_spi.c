@@ -105,7 +105,7 @@ void st7789_write_register(int len, ...)
 	}
 	va_end(args);
 
-	/* Set data(!command) bit of forst byte */
+	/* Set data(!command) bit of first byte */
 	buf[0] &= 0x00ff;
 #if defined (DEBUG)
 	pr_debug("SPI Data: 0x%04x", buf[0]);
@@ -116,6 +116,9 @@ void st7789_write_register(int len, ...)
 #endif
 
 	res = st7789_write_spi(buf, (size_t)(sizeof(u16) * len));
+	if (0 != res) {
+		pr_debug("Failed to write data... (%d)", res);
+	}
 
 	kfree(buf);
 
@@ -133,15 +136,17 @@ int st7789_write_spi(void *buf, size_t len)
 {
 	struct spi_device *spi = disp.spi;
 	struct spi_message m;
-	struct spi_transfer t = {
-		.tx_buf = buf,
-		.len = len,
-	};
+	struct spi_transfer t;
 
 	if (!spi) {
 		pr_err("%s: spi is unexpectedly NULL\n", __func__);
 		return PTR_ERR(spi);
 	}
+
+	memset(&t, 0, sizeof(struct spi_transfer));
+	t.tx_buf = buf;
+	t.len = len;
+	t.bits_per_word = 9;//spi->bits_per_word;
 
 	spi_message_init(&m);
 
@@ -163,11 +168,18 @@ int st7789_trx_spi(void *buf_out, void *buf_in,
 {
 	struct spi_device *spi = disp.spi;
 	struct spi_message m;
-	struct spi_transfer t = {
-		.tx_buf = buf_out,
-		.rx_buf = buf_in,
-		.len = trx_len,
-	};
+	struct spi_transfer t;
+
+	if (!spi) {
+		pr_err("%s: spi is unexpectedly NULL\n", __func__);
+		return PTR_ERR(spi);
+	}
+
+	memset(&t, 0, sizeof(struct spi_transfer));
+	t.tx_buf = buf_out;
+	t.rx_buf = buf_in;
+	t.len = trx_len;
+	t.bits_per_word = 9;//spi->bits_per_word;
 
 	spi_message_init(&m);
 	spi_message_add_tail(&t, &m);
@@ -375,16 +387,21 @@ int st7789_probe_spi(struct spi_device *spi)
 	struct fb_var_screeninfo *var;
 #endif
 	if (NULL == spi) {
+#if 0
 		return PTR_ERR(spi);
+#else
+		pr_debug("st7789_probe_spi: error - invalid spi handler");
+		return 0;
+#endif
 	}
 
-	/* dev_dbg(spi, "Probing STROMER-ST7789v device"); */
 	pr_debug("Probing STROMER-ST7789v device");
 
 	/* store spi device locally */
 	disp.spi = spi;
 	/* Set mode to 9-Bit */
 	spi->bits_per_word = 9;
+	pr_debug("st7789_spi: set bits per word to %d Bits", spi->bits_per_word);
 #if defined (GPIO_SPI_RESET)
 	/* Try getting the reset pin */
 	ret = gpio_request_one(GPIO_SPI_RESET, GPIOF_OUT_INIT_LOW, "st7789v_reset");
@@ -393,6 +410,7 @@ int st7789_probe_spi(struct spi_device *spi)
 		return ret;
 	}
 	disp.gpio_reset = GPIO_SPI_RESET;
+	pr_debug("st7789_spi: got reset pin %d", ret);
 #endif
 
 	/* Disable lcdif during initialization */

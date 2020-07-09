@@ -1,8 +1,8 @@
 diff --git a/arch/arm/dts/imx6ull-phytec-phycore-som-nand.dts b/arch/arm/dts/imx6ull-phytec-phycore-som-nand.dts
-index 250524b..3bd0a1f 100644
+index 250524b25..0aabf9bb7 100644
 --- a/arch/arm/dts/imx6ull-phytec-phycore-som-nand.dts
 +++ b/arch/arm/dts/imx6ull-phytec-phycore-som-nand.dts
-@@ -52,3 +52,15 @@
+@@ -52,3 +52,19 @@
  &usbotg2 {
  	status = "okay";
  };
@@ -12,6 +12,10 @@ index 250524b..3bd0a1f 100644
 +};
 +
 +&background {
++	status = "okay";
++};
++
++&i2c2 {
 +	status = "okay";
 +};
 +

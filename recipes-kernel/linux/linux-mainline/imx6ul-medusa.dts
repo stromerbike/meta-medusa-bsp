@@ -43,12 +43,39 @@
 			status = "okay";
 		};
 
-		reg_pressure_3v3: regulator@3 {
+		reg_can_3v3: regulator@3 {
 			compatible = "regulator-fixed";
 			reg = <3>;
-			regulator-name = "pressure-3v3";
+			regulator-name = "can-3v3";
 			regulator-min-microvolt = <3300000>;
 			regulator-max-microvolt = <3300000>;
+			status = "okay";
+		};
+
+		reg_exp_3v3: regulator@4 {
+			compatible = "regulator-fixed";
+			reg = <4>;
+			regulator-name = "exp-3v3";
+			regulator-min-microvolt = <3300000>;
+			regulator-max-microvolt = <3300000>;
+			status = "okay";
+		};
+
+		reg_lcd_3v3: regulator@5 {
+			compatible = "regulator-fixed";
+			reg = <5>;
+			regulator-name = "lcd-3v3";
+			regulator-min-microvolt = <3300000>;
+			regulator-max-microvolt = <3300000>;
+			status = "okay";
+		};
+
+		reg_5v: regulator@6 {
+			compatible = "regulator-fixed";
+			reg = <6>;
+			regulator-name = "5v";
+			regulator-min-microvolt = <5000000>;
+			regulator-max-microvolt = <5000000>;
 			status = "okay";
 		};
 	};
@@ -281,6 +308,7 @@
 	/* TCA6416A GPIO Expander */
 	gpio@20 {
 		compatible = "ti,tca6416";
+		vcc-supply = <&reg_exp_3v3>;
 		gpio-controller;
 		#gpio-cells = <2>;
 		reg = <0x20>;
@@ -297,6 +325,7 @@
 	/* TCA6416A GPIO Expander */
 	gpio@20 {
 		compatible = "ti,tca6416ext";
+		vcc-supply = <&reg_5v>;
 		gpio-controller;
 		#gpio-cells = <2>;
 		reg = <0x20>;
@@ -311,12 +340,15 @@
 	pinctrl-0 = <&pinctrl_ecspi1>;
 	num-cs = <1>;
 	cs-gpios = <0>;
+	dmas = <&sdma 3 7 1>, <&sdma 4 7 2>;
+	dma-names = "rx", "tx";
 	status = "okay";
 };
 
 &lcdif {
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_lcdif_dat>;
+	lcd-supply = <&reg_lcd_3v3>;
 	display = <&display>;
 	status = "okay";
 
@@ -351,6 +383,7 @@
 &can2 {
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_flexcan2>;
+	xceiver-supply = <&reg_can_3v3>;
 	status = "okay";
 };
 
@@ -361,6 +394,7 @@
 	/* Only USB OTG ID pin is configured,
 	   all other pins are preconfigured for USB */
 	dr_mode = "otg";
+	vbus-supply = <&reg_5v>;
 	status = "okay";
 };
 
@@ -369,6 +403,7 @@
 	dr_mode = "host";
 	/* All pins are preconfigured for USB */
 	disable-over-current;
+	vbus-supply = <&reg_5v>;
 	status = "okay";
 };
 

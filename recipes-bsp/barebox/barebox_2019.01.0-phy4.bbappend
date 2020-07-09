@@ -15,10 +15,11 @@ BAREBOX_IMAGE_BASE_NAME_imx6ul-medusa := "barebox-phytec-phycore-imx6ul-nand-512
 BAREBOX_IMAGE_BASE_NAME_imx6ull-medusa := "barebox-phytec-phycore-imx6ull-nand-512mb"
 
 do_configure_append() {
+    kconfig_set GPIO_PCA953X y
     # Enable barebox state
     kconfig_set STATE y
     kconfig_set STATE_DRV y
-	kconfig_set STATE_BACKWARD_COMPATIBLE y
+    kconfig_set STATE_BACKWARD_COMPATIBLE y
     kconfig_set CMD_STATE y
     kconfig_set STATE_CRYPTO n
     # Set configuration to enable backlight
@@ -61,15 +62,72 @@ if [ $state.update -eq 1 ] || [ $state.barebox -eq 1 ]; then
 ./env/update
 fi
 
-# Detect NAND and mount partition
-detect -a
-mkdir mnt/rootfs
+# Detect all devices (incl. USB) if main button is pressed (held) and
+# copy .ubifs to active partition if USB stick with medusa-image.ubifs is present
+# Left LED:
+# - Off:   USB drive not present
+# - Blue:  USB drive present
+# Right LED:
+# - Off:   No recovery in progress
+# - Blue:  Recovery in progress
+# - Green: Recovery done
+# - Red:   Recovery error
+gpio_direction_input 130
+if gpio_get_value 130; then
+    echo ON_SWITCH: released
+else
+    echo ON_SWITCH: pressed
+
+    # Enable USB host mode for potentially present USB drive
+    # FORCE_OTG1_ID, 5V_ON and CTL2 (SDP1 mode) activate
+    gpio_direction_output 23 1
+    gpio_direction_output 160 1
+    gpio_direction_output 170 1
+    otg.mode=host
+    detect -a
+
+    if [ -e /dev/disk0.0 ]; then
+        # RGB_ON activate, init LED chip and activate left LED as blue
+        gpio_direction_output 164 1
+        i2c_write -b 1 -a 0x35 -r 0x36 -v 0x53
+        i2c_write -b 1 -a 0x35 -r 0x00 -v 0x40
+        i2c_write -b 1 -a 0x35 -r 0x18 -v 0xff
+        mount /dev/disk0.0
+        if [ -e /mnt/disk0.0/medusa-image.ubifs ]; then
+            if [ $state.partition -eq 0 ]; then
+                # Activate right LED as blue
+                i2c_write -b 1 -a 0x35 -r 0x1b -v 0xff
+                if cp -v /mnt/disk0.0/medusa-image.ubifs /dev/nand0.root.ubi.part0; then
+                    # Activate right LED as green
+                    i2c_write -b 1 -a 0x35 -r 0x1b -v 0x00
+                    i2c_write -b 1 -a 0x35 -r 0x1a -v 0xff
+                else
+                    # Activate right LED as red
+                    i2c_write -b 1 -a 0x35 -r 0x1b -v 0x00
+                    i2c_write -b 1 -a 0x35 -r 0x19 -v 0xff
+                fi
+            else
+                if cp -v /mnt/disk0.0/medusa-image.ubifs /dev/nand0.root.ubi.part1; then
+                    # Activate right LED as green
+                    i2c_write -b 1 -a 0x35 -r 0x1b -v 0x00
+                    i2c_write -b 1 -a 0x35 -r 0x1a -v 0xff
+                else
+                    # Activate right LED as red
+                    i2c_write -b 1 -a 0x35 -r 0x1b -v 0x00
+                    i2c_write -b 1 -a 0x35 -r 0x19 -v 0xff
+                fi
+            fi
+        fi
+    fi
+fi
 
 # Remove UART8 from DTB
 if [ $state.uart8 -eq 0 ]; then
 of_fixup_status -d /soc/aips-bus@02000000/spba-bus@02000000/serial@02024000/
 fi
 
+# Mount partition
+mkdir mnt/rootfs
 if [ $state.partition -eq 0 ]; then
 mount /dev/nand0.root.ubi.part0 mnt/rootfs
 global.linux.bootargs.dyn.root="root=ubi0:part0 ubi.mtd=root rootfstype=ubifs rw vt.global_cursor_default=0 fsck.make=skip quiet"
@@ -85,10 +143,10 @@ global.bootm.oftree="/mnt/rootfs/boot/imx6ul-medusa.dtb"
     bb.note("Adding script to mount usb stick")
     env_add(d, "mustick",
 """#!/bin/sh
-i2c_write -b 1 -a 0x20 -r 6 -v 0xfe
-i2c_write -b 1 -a 0x20 -r 2 -v 0xff
-i2c_write -b 1 -a 0x20 -r 7 -v 0xfb
-i2c_write -b 1 -a 0x20 -r 3 -v 0xff
+i2c_write -b 2 -a 0x20 -r 6 -v 0xfe
+i2c_write -b 2 -a 0x20 -r 2 -v 0xff
+i2c_write -b 2 -a 0x20 -r 7 -v 0xfb
+i2c_write -b 2 -a 0x20 -r 3 -v 0xff
 sleep 1
 otg.mode=host
 detect -a
@@ -177,13 +235,13 @@ mount /dev/disk0.0
     env_add(d, "update",
 """#!/bin/sh
 echo ========= Update process =============
-i2c_write -b 1 -a 0x20 -r 6 -v 0xfe
+i2c_write -b 2 -a 0x20 -r 6 -v 0xfe
 sleep 0.3
-i2c_write -b 1 -a 0x20 -r 2 -v 0xff
+i2c_write -b 2 -a 0x20 -r 2 -v 0xff
 sleep 0.5
-i2c_write -b 1 -a 0x20 -r 7 -v 0xfb
+i2c_write -b 2 -a 0x20 -r 7 -v 0xfb
 sleep 0.3
-i2c_write -b 1 -a 0x20 -r 3 -v 0xff
+i2c_write -b 2 -a 0x20 -r 3 -v 0xff
 sleep 1
 otg.mode=host
 
@@ -247,17 +305,6 @@ python do_env_append_imx6ull-medusa() {
     env_add(d, "nv/autoboot_timeout", "0\n")
     env_add(d, "nv/vt.global_cursor_default", "0\n")
 
-    env_rm(d, "boot/mmc")
-    env_rm(d, "boot/net")
-    env_rm(d, "boot/system0")
-    env_rm(d, "boot/system1")
-    env_rm(d, "boot/spi")
-
-    env_rm(d, "nv/bootchooser.targets")
-    env_rm(d, "nv/bootchooser.system0.boot")
-    env_rm(d, "nv/bootchooser.system1.boot")
-    env_rm(d, "nv/bootchooser.state_prefix")
-
     env_rm(d, "boot/nand")
     env_add(d, "boot/nand",
 """#!/bin/sh
@@ -271,15 +318,72 @@ if [ $state.update -eq 1 ] || [ $state.barebox -eq 1 ]; then
 ./env/update
 fi
 
-# Detect NAND and mount partition
-detect -a
-mkdir mnt/rootfs
+# Detect all devices (incl. USB) if main button is pressed (held) and
+# copy .ubifs to active partition if USB stick with medusa-image.ubifs is present
+# Left LED:
+# - Off:   USB drive not present
+# - Blue:  USB drive present
+# Right LED:
+# - Off:   No recovery in progress
+# - Blue:  Recovery in progress
+# - Green: Recovery done
+# - Red:   Recovery error
+gpio_direction_input 130
+if gpio_get_value 130; then
+    echo ON_SWITCH: released
+else
+    echo ON_SWITCH: pressed
+
+    # Enable USB host mode for potentially present USB drive
+    # FORCE_OTG1_ID, 5V_ON and CTL2 (SDP1 mode) activate
+    gpio_direction_output 23 1
+    gpio_direction_output 160 1
+    gpio_direction_output 170 1
+    otg.mode=host
+    detect -a
+
+    if [ -e /dev/disk0.0 ]; then
+        # RGB_ON activate, init LED chip and activate left LED as blue
+        gpio_direction_output 164 1
+        i2c_write -b 1 -a 0x35 -r 0x36 -v 0x53
+        i2c_write -b 1 -a 0x35 -r 0x00 -v 0x40
+        i2c_write -b 1 -a 0x35 -r 0x18 -v 0xff
+        mount /dev/disk0.0
+        if [ -e /mnt/disk0.0/medusa-image.ubifs ]; then
+            if [ $state.partition -eq 0 ]; then
+                # Activate right LED as blue
+                i2c_write -b 1 -a 0x35 -r 0x1b -v 0xff
+                if cp -v /mnt/disk0.0/medusa-image.ubifs /dev/nand0.root.ubi.part0; then
+                    # Activate right LED as green
+                    i2c_write -b 1 -a 0x35 -r 0x1b -v 0x00
+                    i2c_write -b 1 -a 0x35 -r 0x1a -v 0xff
+                else
+                    # Activate right LED as red
+                    i2c_write -b 1 -a 0x35 -r 0x1b -v 0x00
+                    i2c_write -b 1 -a 0x35 -r 0x19 -v 0xff
+                fi
+            else
+                if cp -v /mnt/disk0.0/medusa-image.ubifs /dev/nand0.root.ubi.part1; then
+                    # Activate right LED as green
+                    i2c_write -b 1 -a 0x35 -r 0x1b -v 0x00
+                    i2c_write -b 1 -a 0x35 -r 0x1a -v 0xff
+                else
+                    # Activate right LED as red
+                    i2c_write -b 1 -a 0x35 -r 0x1b -v 0x00
+                    i2c_write -b 1 -a 0x35 -r 0x19 -v 0xff
+                fi
+            fi
+        fi
+    fi
+fi
 
 # Remove UART8 from DTB
 if [ $state.uart8 -eq 0 ]; then
 of_fixup_status -d /soc/aips-bus@02000000/spba-bus@02000000/serial@02024000/
 fi
 
+# Mount partition
+mkdir mnt/rootfs
 if [ $state.partition -eq 0 ]; then
 mount /dev/nand0.root.ubi.part0 mnt/rootfs
 global.linux.bootargs.dyn.root="root=ubi0:part0 ubi.mtd=root rootfstype=ubifs rw vt.global_cursor_default=0 fsck.make=skip quiet"
@@ -288,17 +392,22 @@ mount /dev/nand0.root.ubi.part1 mnt/rootfs
 global.linux.bootargs.dyn.root="root=ubi0:part1 ubi.mtd=root rootfstype=ubifs rw vt.global_cursor_default=0 fsck.make=skip quiet"
 fi
 
+# Fall back to imx6ul-medusa.dtb because booting with potential errors is better than being stuck in bootloader
 global.bootm.image="/mnt/rootfs/boot/zImage"
+if [ -e /mnt/rootfs/boot/imx6ull-medusa.dtb ]; then
 global.bootm.oftree="/mnt/rootfs/boot/imx6ull-medusa.dtb"
+else
+global.bootm.oftree="/mnt/rootfs/boot/imx6ul-medusa.dtb"
+fi
 """)
 
     bb.note("Adding script to mount usb stick")
     env_add(d, "mustick",
 """#!/bin/sh
-i2c_write -b 1 -a 0x20 -r 6 -v 0xfe
-i2c_write -b 1 -a 0x20 -r 2 -v 0xff
-i2c_write -b 1 -a 0x20 -r 7 -v 0xfb
-i2c_write -b 1 -a 0x20 -r 3 -v 0xff
+i2c_write -b 2 -a 0x20 -r 6 -v 0xfe
+i2c_write -b 2 -a 0x20 -r 2 -v 0xff
+i2c_write -b 2 -a 0x20 -r 7 -v 0xfb
+i2c_write -b 2 -a 0x20 -r 3 -v 0xff
 sleep 1
 otg.mode=host
 detect -a
@@ -387,13 +496,13 @@ mount /dev/disk0.0
     env_add(d, "update",
 """#!/bin/sh
 echo ========= Update process =============
-i2c_write -b 1 -a 0x20 -r 6 -v 0xfe
+i2c_write -b 2 -a 0x20 -r 6 -v 0xfe
 sleep 0.3
-i2c_write -b 1 -a 0x20 -r 2 -v 0xff
+i2c_write -b 2 -a 0x20 -r 2 -v 0xff
 sleep 0.5
-i2c_write -b 1 -a 0x20 -r 7 -v 0xfb
+i2c_write -b 2 -a 0x20 -r 7 -v 0xfb
 sleep 0.3
-i2c_write -b 1 -a 0x20 -r 3 -v 0xff
+i2c_write -b 2 -a 0x20 -r 3 -v 0xff
 sleep 1
 otg.mode=host
 
