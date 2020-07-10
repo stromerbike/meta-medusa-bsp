@@ -452,6 +452,32 @@
 	status = "okay";
 };
 
+&iomuxc_snvs {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_tamper_gpios>;
+
+	pinctrl_tamper_gpios: tampergpiosgrp {
+		fsl,pins = <
+			MX6ULL_PAD_SNVS_TAMPER0__GPIO5_IO00	0x79 /* GSM_RESET */
+			MX6ULL_PAD_SNVS_TAMPER3__GPIO5_IO03	0x79 /* Horn Pull-Up/Pull-Down */
+			MX6ULL_PAD_SNVS_TAMPER5__GPIO5_IO05	0x79 /* GSM_ON_N - SOM 1468.1 or newer */
+			MX6ULL_PAD_SNVS_TAMPER9__GPIO5_IO09	0x79 /* CAN_SILENT - SOM 1468.1 or newer */
+		>;
+	};
+
+	/* On Switch (On/Menu) */
+	pinctrl_gpio_keys: gpiokeysgrp {
+		fsl,pins = <
+			MX6ULL_PAD_SNVS_TAMPER2__GPIO5_IO02	0x79
+		>;
+	};
+
+	/* Heart beat led */
+	pinctrl_gpioleds_som: gpioledssomgrp {
+		fsl,pins = <MX6ULL_PAD_SNVS_TAMPER4__GPIO5_IO04	0x0b0b0>;
+	};
+};
+
 &iomuxc {
 	pinctrl-name = "default";
 	pinctrl-0 = <&pinctrl_hog>;
@@ -466,18 +492,14 @@
 			MX6UL_PAD_GPIO1_IO05__GPIO1_IO05      0xb0    /* AN_mux */
 			MX6UL_PAD_GPIO1_IO09__GPIO1_IO09      0xb0    /* TMM */
 			/* ! Different versions of the SOM caused different pin for CAN_SILENT */
-			MX6UL_PAD_SNVS_TAMPER9__GPIO5_IO09    0x79    /* CAN_SILENT - SOM 1468.1 or newer */
 			/* MX6UL_PAD_NAND_CE1_B__GPIO4_IO14   0x79 */ /* CAN_SILENT - SOM 1468.0 only */
 			MX6UL_PAD_SD1_CLK__GPIO2_IO17         0x79    /* Brake Pull-Up/Pull-Down */
-			MX6UL_PAD_SNVS_TAMPER3__GPIO5_IO03    0x79    /* Horn Pull-Up/Pull-Down */
 			MX6UL_PAD_CSI_DATA03__GPIO4_IO24      0x79    /* BLE nSHUTD */
 			MX6UL_PAD_CSI_DATA04__GPIO4_IO25      0x79    /* GNSS_PPS */
 			MX6UL_PAD_CSI_DATA05__GPIO4_IO26      0x79    /* GNSS_FORCE_ON */
 			MX6UL_PAD_CSI_DATA07__GPIO4_IO28      0x79    /* GNSS_RESET */
 			/* ! Different versions of the SOM caused different pin for GSM_ON_N */
-			MX6UL_PAD_SNVS_TAMPER5__GPIO5_IO05    0x79    /* GSM_ON_N - SOM 1468.1 or newer */
 			/* MX6UL_PAD_GPIO1_IO02__GPIO1_IO02   0x79 */ /* GSM_ON_N - SOM 1468.0 only */
-			MX6UL_PAD_SNVS_TAMPER0__GPIO5_IO00    0x79    /* GSM_RESET */
 			MX6UL_PAD_UART1_CTS_B__GPIO1_IO18     0x79    /* MPIO1_DIR */
 			MX6UL_PAD_UART1_RTS_B__GPIO1_IO19     0x79    /* MPIO2_DIR */
 			MX6UL_PAD_SD1_CMD__GPIO2_IO16         0x1b0b1 /* MPIO1 */
@@ -487,12 +509,6 @@
 			MX6UL_PAD_CSI_PIXCLK__GPIO4_IO18      0x79    /* I2C4_ON */
 			MX6UL_PAD_CSI_DATA02__GPIO4_IO23      0x79    /* TMMADC_RESET_N */
 		 >;
-	};
-	/* On Switch (On/Menu) */
-	pinctrl_gpio_keys: gpiokeysgrp {
-		fsl,pins = <
-			MX6UL_PAD_SNVS_TAMPER2__GPIO5_IO02	0x79
-		>;
 	};
 
 	/* NAND */
@@ -522,11 +538,6 @@
 			MX6UL_PAD_UART1_TX_DATA__UART1_DCE_TX	0x1b0b1
 			MX6UL_PAD_UART1_RX_DATA__UART1_DCE_RX	0x1b0b1
 		>;
-	};
-
-	/* Heart beat led */
-	pinctrl_gpioleds_som: gpioledssomgrp {
-		fsl,pins = <MX6UL_PAD_SNVS_TAMPER4__GPIO5_IO04	0x0b0b0>;
 	};
 
 	/* Button ring */
