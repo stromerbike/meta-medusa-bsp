@@ -29,10 +29,11 @@ index 68b96277d9fa..b83f40d81be9 100644
  obj-$(CONFIG_GPIO_PCH)		+= gpio-pch.o
  obj-$(CONFIG_GPIO_PCI_IDIO_16)	+= gpio-pci-idio-16.o
 diff --git a/drivers/gpio/gpio-pca953x-external.c b/drivers/gpio/gpio-pca953x-external.c
-index e69de29bb2d1..2bde6ef54ee3 100644
---- a/drivers/gpio/gpio-pca953x-external.c
+new file mode 100644
+index 000000000000..76cb978e2fa4
+--- /dev/null
 +++ b/drivers/gpio/gpio-pca953x-external.c
-@@ -0,0 +1,933 @@
+@@ -0,0 +1,931 @@
 +/*
 + *  PCA953x 4/8/16/24/40 bit I/O ports,
 + *  modified for just one compatible type ("ti,tca6416ext"),
@@ -196,10 +197,9 @@ index e69de29bb2d1..2bde6ef54ee3 100644
 +
 +static int pca953x_write_regs_16(struct pca953x_chip *chip, int reg, u8 *val)
 +{
-+	__le16 word = cpu_to_le16(get_unaligned((u16 *)val));
++	u16 word = get_unaligned((u16 *)val);
 +
-+	return i2c_smbus_write_word_data(chip->client,
-+					 reg << 1, (__force u16)word);
++	return i2c_smbus_write_word_data(chip->client, reg << 1, word);
 +}
 +
 +static int pca957x_write_regs_16(struct pca953x_chip *chip, int reg, u8 *val)
@@ -250,8 +250,7 @@ index e69de29bb2d1..2bde6ef54ee3 100644
 +	int ret;
 +
 +	ret = i2c_smbus_read_word_data(chip->client, reg << 1);
-+	val[0] = (u16)ret & 0xFF;
-+	val[1] = (u16)ret >> 8;
++	put_unaligned(ret, (u16 *)val);
 +
 +	return ret;
 +}
