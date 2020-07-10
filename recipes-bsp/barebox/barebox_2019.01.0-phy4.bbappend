@@ -77,6 +77,7 @@ if gpio_get_value 130; then
     echo ON_SWITCH: released
 else
     echo ON_SWITCH: pressed
+    backlight0.brightness=100
 
     # Enable USB host mode for potentially present USB drive
     # FORCE_OTG1_ID, 5V_ON and CTL2 (SDP1 mode) activate
@@ -94,9 +95,9 @@ else
         i2c_write -b 1 -a 0x35 -r 0x18 -v 0xff
         mount /dev/disk0.0
         if [ -e /mnt/disk0.0/medusa-image.ubifs ]; then
+            # Activate right LED as blue
+            i2c_write -b 1 -a 0x35 -r 0x1b -v 0xff
             if [ $state.partition -eq 0 ]; then
-                # Activate right LED as blue
-                i2c_write -b 1 -a 0x35 -r 0x1b -v 0xff
                 if cp -v /mnt/disk0.0/medusa-image.ubifs /dev/nand0.root.ubi.part0; then
                     # Activate right LED as green
                     i2c_write -b 1 -a 0x35 -r 0x1b -v 0x00
@@ -333,6 +334,7 @@ if gpio_get_value 130; then
     echo ON_SWITCH: released
 else
     echo ON_SWITCH: pressed
+    backlight0.brightness=100
 
     # Enable USB host mode for potentially present USB drive
     # FORCE_OTG1_ID, 5V_ON and CTL2 (SDP1 mode) activate
@@ -350,9 +352,9 @@ else
         i2c_write -b 1 -a 0x35 -r 0x18 -v 0xff
         mount /dev/disk0.0
         if [ -e /mnt/disk0.0/medusa-image.ubifs ]; then
+            # Activate right LED as blue
+            i2c_write -b 1 -a 0x35 -r 0x1b -v 0xff
             if [ $state.partition -eq 0 ]; then
-                # Activate right LED as blue
-                i2c_write -b 1 -a 0x35 -r 0x1b -v 0xff
                 if cp -v /mnt/disk0.0/medusa-image.ubifs /dev/nand0.root.ubi.part0; then
                     # Activate right LED as green
                     i2c_write -b 1 -a 0x35 -r 0x1b -v 0x00
