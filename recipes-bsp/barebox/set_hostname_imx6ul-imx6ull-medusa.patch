@@ -1,0 +1,21 @@
+diff --git a/arch/arm/boards/phytec-som-imx6/board.c b/arch/arm/boards/phytec-som-imx6/board.c
+index ace55cdf5..afbd19ac6 100644
+--- a/arch/arm/boards/phytec-som-imx6/board.c
++++ b/arch/arm/boards/phytec-som-imx6/board.c
+@@ -194,7 +194,15 @@ static int physom_imx6_devices_init(void)
+ 
+ 	} else if (of_machine_is_compatible("phytec,imx6ul-pcl063-nand")
+ 		|| of_machine_is_compatible("phytec,imx6ul-pcl063-emmc")) {
+-		barebox_set_hostname("phyCORE-i.MX6UL");
++		int cpu_type = __imx6_cpu_type();
++		if (cpu_type == IMX6_CPUTYPE_IMX6UL) {
++			barebox_set_hostname("imx6ul-medusa");
++		} else if (cpu_type == IMX6_CPUTYPE_IMX6ULL) {
++			barebox_set_hostname("imx6ull-medusa");
++		} else {
++			pr_err("Determining CPU type failed\n");
++		}
++		pr_notice("Set hostname to %s \n", barebox_get_hostname());
+ 		default_environment_path = "/chosen/environment-nand";
+ 		default_envdev = "NAND flash";
+ 

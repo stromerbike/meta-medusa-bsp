@@ -1,0 +1,199 @@
+diff --git a/common/state/backend_bucket_direct.c b/common/state/backend_bucket_direct.c
+index fc9061527..2d6d86aab 100644
+--- a/common/state/backend_bucket_direct.c
++++ b/common/state/backend_bucket_direct.c
+@@ -45,6 +45,17 @@ static inline struct state_backend_storage_bucket_direct
+ 			    bucket);
+ }
+ 
++static void state_backend_bucket_direct_adjust(struct state_backend_storage_bucket
++					    *bucket, off_t offset,
++					    ssize_t max_size)
++{
++	struct state_backend_storage_bucket_direct *direct =
++	    get_bucket_direct(bucket);
++
++	direct->offset = offset;
++	direct->max_size = max_size;
++}
++
+ static int state_backend_bucket_direct_read(struct state_backend_storage_bucket
+ 					    *bucket, void ** buf_out,
+ 					    ssize_t * len_out)
+@@ -184,6 +195,7 @@ int state_backend_bucket_direct_create(struct device_d *dev, const char *path,
+ 
+ 	direct->bucket.read = state_backend_bucket_direct_read;
+ 	direct->bucket.write = state_backend_bucket_direct_write;
++	direct->bucket.adjust = state_backend_bucket_direct_adjust;
+ 	direct->bucket.free = state_backend_bucket_direct_free;
+ 	*bucket = &direct->bucket;
+ 
+diff --git a/common/state/backend_format_raw.c b/common/state/backend_format_raw.c
+index 4369f76e3..9fcd97d3c 100644
+--- a/common/state/backend_format_raw.c
++++ b/common/state/backend_format_raw.c
+@@ -116,7 +116,7 @@ static int backend_format_raw_verify(struct state_backend_format *format,
+ 	header = (struct backend_raw_header *)buf;
+ 	crc = crc32(0, header, sizeof(*header) - sizeof(uint32_t));
+ 	if (crc != header->header_crc) {
+-		dev_err(backend_raw->dev, "Error, invalid header crc in raw format, calculated 0x%08x, found 0x%08x\n",
++		dev_notice(backend_raw->dev, "Error, invalid header crc in raw format, calculated 0x%08x, found 0x%08x\n",
+ 			crc, header->header_crc);
+ 		return -EINVAL;
+ 	}
+@@ -189,7 +189,7 @@ static int backend_format_raw_unpack(struct state_backend_format *format,
+ 
+ 	list_for_each_entry(sv, &state->variables, list) {
+ 		if (sv->start + sv->size > header->data_len) {
+-			dev_err(backend_raw->dev, "State variable ends behind valid data, %s\n",
++			dev_notice(backend_raw->dev, "State variable ends behind valid data, %s\n",
+ 				sv->name);
+ 			continue;
+ 		}
+diff --git a/common/state/backend_storage.c b/common/state/backend_storage.c
+index c6ebe8624..f0ac6489e 100644
+--- a/common/state/backend_storage.c
++++ b/common/state/backend_storage.c
+@@ -49,6 +49,38 @@
+ 
+ static const unsigned int min_buckets_written = 1;
+ 
++/*
++ * The early barebox versions for the imx6ul-medusa did have a smaller
++ * backend-stridesize of 0x53 as compared to the newer ones with 0x70 because
++ * the following variables did not exist:
++ * - update
++ * - barebox
++ * - uart8
++ * - label
++ * 
++ * To avoid maintaining a separate barebox variant for imx6ul-medusa machines
++ * which where provisioned with those early barebox versions:
++ * - Upon detection of broken buckets after read & verify, a retrial is
++ *   attempted with the legacy value of the backend-stridesize and on success
++ *   the global backend-stridesize adjusted.
++ * - Furthermore, readonly is activated to prevent any write operations which
++ *   would otherwise corrupt the existing data.
++ * - In case the global backend-stridesize value equals the legacy value,
++ *   the newer variables are not added during the fixup so that barebox-state
++ *   in userpace does not run into problems.
++ *
++ * Remarks: For simplicity, the barebox internal devicetree and state variables
++ *          (for environments and the command line) are not adjusted after
++ *          adjusting the global backend-stridesize. Also, the following
++ *          will be printed during barebox startup for imx6ul-medusa machines
++ *          which where provisioned with those early barebox versions:
++ *          - state: State variable ends behind valid data, update
++ *          - state: State variable ends behind valid data, barebox
++ *          - state: State variable ends behind valid data, uart8
++ *          - state: State variable ends behind valid data, label
++ */
++static const uint32_t stridesize_legacy = 0x53;
++
+ /**
+  * state_storage_write - Writes the given data to the storage
+  * @param storage Storage object
+@@ -70,8 +102,10 @@ int state_storage_write(struct state_backend_storage *storage,
+ 	int ret;
+ 	int buckets_written = 0;
+ 
+-	if (storage->readonly)
++	if (storage->readonly) {
++		dev_warn(storage->dev, "Not writing state because readonly is active\n");
+ 		return 0;
++	}
+ 
+ 	list_for_each_entry(bucket, &storage->buckets, bucket_list) {
+ 		ret = bucket->write(bucket, buf, len);
+@@ -153,6 +187,7 @@ int state_storage_read(struct state_backend_storage *storage,
+ 	 */
+ 	list_for_each_entry(bucket, &storage->buckets, bucket_list) {
+ 		ret = bucket->read(bucket, &bucket->buf, &bucket->len);
++
+ 		if (ret == -EUCLEAN)
+ 			bucket->needs_refresh = 1;
+ 		else if (ret)
+@@ -165,8 +200,30 @@ int state_storage_read(struct state_backend_storage *storage,
+ 		ret = format->verify(format, magic, bucket->buf, &bucket->len, flags);
+ 		if (!ret && !bucket_used)
+ 			bucket_used = bucket;
+-		if (ret)
+-			dev_info(storage->dev, "Ignoring broken bucket %d@0x%08lx...\n", bucket->num, bucket->offset);
++		if (ret) {
++			dev_notice(storage->dev, "Adjusting broken bucket %d@0x%08lx with new stridesize\n", bucket->num, bucket->offset);
++			bucket->adjust(bucket, storage->offset + bucket->num * storage->offset + bucket->num * stridesize_legacy, stridesize_legacy);
++
++			ret = bucket->read(bucket, &bucket->buf, &bucket->len);
++			if (ret == -EUCLEAN)
++				bucket->needs_refresh = 1;
++			else if (ret)
++				continue;
++
++			ret = format->verify(format, magic, bucket->buf, &bucket->len, flags);
++			if (ret) {
++				dev_info(storage->dev, "Ignoring broken bucket %d@0x%08lx...\n", bucket->num, bucket->offset);
++			} else {
++				if (storage->stridesize != stridesize_legacy) {
++					dev_notice(storage->dev, "Adjusting storage stridesize to legacy value 0x%x\n", stridesize_legacy);
++					storage->stridesize = stridesize_legacy;
++				}
++				if (!storage->readonly) {
++					dev_notice(storage->dev, "Activating readonly to avoid data corruption\n");
++					storage->readonly = true;
++				}
++			}
++		}
+ 	}
+ 
+ 	dev_dbg(storage->dev, "Checking redundant buckets finished.\n");
+@@ -309,7 +366,6 @@ static int state_storage_file_buckets_init(struct state_backend_storage *storage
+ 	int n_buckets = 0;
+ 	uint32_t stridesize = storage->stridesize;
+ 	size_t max_size = storage->max_size;
+-
+ 	if (!stridesize) {
+ 		dev_err(storage->dev, "stridesize unspecified\n");
+ 		return -EINVAL;
+@@ -319,7 +375,6 @@ static int state_storage_file_buckets_init(struct state_backend_storage *storage
+ 		dev_err(storage->dev, "device is too small to hold %d copies\n", desired_buckets);
+ 		return -EINVAL;
+ 	}
+-
+ 	for (n = 0; n < desired_buckets; n++) {
+ 		offset = storage->offset + n * stridesize;
+ 		ret = state_backend_bucket_direct_create(storage->dev, storage->path,
+diff --git a/common/state/state.c b/common/state/state.c
+index 54c57232e..0f16f37b6 100644
+--- a/common/state/state.c
++++ b/common/state/state.c
+@@ -357,7 +357,16 @@ struct device_node *state_to_node(struct state *state,
+ 		goto out;
+ 
+ 	for_each_child_of_node(state_root, child) {
+-		ret = state_convert_node_variable(state, child, root, "", conv);
++		if ((state->storage.stridesize == 0x53) &&
++			(conv == STATE_CONVERT_FIXUP) &&
++			((!strcmp("update" , child->name)) ||
++			 (!strcmp("barebox", child->name)) ||
++			 (!strcmp("uart8"  , child->name)) ||
++			 (!strcmp("label"  , child->name)))) {
++			dev_notice(&state->dev, "Skipping %s for converting to fixup\n", child->name);
++		} else {
++			ret = state_convert_node_variable(state, child, root, "", conv);
++		}
+ 		if (ret)
+ 			goto out;
+ 	}
+diff --git a/common/state/state.h b/common/state/state.h
+index 3a0662fd2..8ba962611 100644
+--- a/common/state/state.h
++++ b/common/state/state.h
+@@ -36,6 +36,8 @@ struct state_backend_storage_bucket {
+ 		      const void * buf, ssize_t len);
+ 	int (*read) (struct state_backend_storage_bucket * bucket,
+ 		     void ** buf, ssize_t * len_hint);
++	void (*adjust) (struct state_backend_storage_bucket * bucket,
++		     off_t offset, ssize_t max_size);
+ 	void (*free) (struct state_backend_storage_bucket * bucket);
+ 
+ 	int num;

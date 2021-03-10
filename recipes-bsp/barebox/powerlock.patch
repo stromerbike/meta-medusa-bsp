@@ -1,0 +1,22 @@
+diff --git a/arch/arm/mach-imx/imx6.c b/arch/arm/mach-imx/imx6.c
+index c7b29ba0d..b286028d6 100644
+--- a/arch/arm/mach-imx/imx6.c
++++ b/arch/arm/mach-imx/imx6.c
+@@ -13,6 +13,7 @@
+ 
+ #include <init.h>
+ #include <common.h>
++#include <gpio.h>
+ #include <io.h>
+ #include <linux/sizes.h>
+ #include <mfd/imx6q-iomuxc-gpr.h>
+@@ -262,6 +263,9 @@ int imx6_init(void)
+ 	imx6_setup_ipu_qos();
+ 	imx6ul_enet_clk_init();
+ 
++	gpio_direction_output(IMX_GPIO_NR(5, 1), 1);
++	pr_notice("powerlock: enabled\n"); // P_L_SIGNAL on gpio129
++
+ 	return 0;
+ }
+ 

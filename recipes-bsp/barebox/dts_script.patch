@@ -512,11 +512,9 @@ diff --git a/defaultenv/defaultenv-2-base/bin/init b/defaultenv/defaultenv-2-bas
 index 8d02e3d3a..2a71bc90c 100644
 --- a/defaultenv/defaultenv-2-base/bin/init
 +++ b/defaultenv/defaultenv-2-base/bin/init
-@@ -1,5 +1,14 @@
+@@ -1,5 +1,12 @@
  #!/bin/sh
  
-+# set power-lock pin
-+gpio_direction_output 129 1
 +
 +# set backlight to 50%
 +backlight0.brightness=50

@@ -1,0 +1,21 @@
+diff --git a/commands/digest.c b/commands/digest.c
+index 0edbbec32..70cd1a01a 100644
+--- a/commands/digest.c
++++ b/commands/digest.c
+@@ -52,6 +52,7 @@ int __do_digest(struct digest *d, unsigned char *sig,
+ 					 hash, sig, start, size);
+ 		if (ret < 0) {
+ 			ret = 1;
++			printf("digest error %s\n", filename);
+ 		} else {
+ 			if (!sig) {
+ 				for (i = 0; i < digest_length(d); i++)
+@@ -63,6 +64,8 @@ int __do_digest(struct digest *d, unsigned char *sig,
+ 						start, start + size);
+ 
+ 				puts("\n");
++			} else {
++				printf("digest ok %s\n", filename);
+ 			}
+ 		}
+ 

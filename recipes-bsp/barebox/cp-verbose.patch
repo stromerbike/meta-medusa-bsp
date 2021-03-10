@@ -1,0 +1,17 @@
+diff --git a/lib/libfile.c b/lib/libfile.c
+index 8f2aed230..2615efcd9 100644
+--- a/lib/libfile.c
++++ b/lib/libfile.c
+@@ -392,8 +392,11 @@ int copy_file(const char *src, const char *dst, int verbose)
+ 
+ 	ret = 0;
+ out:
+-	if (verbose)
++	if (verbose) {
+ 		putchar('\n');
++		if (ret == 0)
++			printf("cp ok %s to %s\n", src, dst);
++	}
+ 
+ 	free(rw_buf);
+ 	if (srcfd > 0)

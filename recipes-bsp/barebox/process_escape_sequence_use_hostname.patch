@@ -1,0 +1,13 @@
+diff --git a/lib/process_escape_sequence.c b/lib/process_escape_sequence.c
+index 3747da11f..4a0a267dc 100644
+--- a/lib/process_escape_sequence.c
++++ b/lib/process_escape_sequence.c
+@@ -56,7 +56,7 @@ int process_escape_sequence(const char *source, char *dest, int destlen)
+ 				dest[i++] = 0x1b;
+ 				break;
+ 			case 'h':
+-				i += snprintf(dest + i, destlen - i, "%s", barebox_get_model());
++				i += snprintf(dest + i, destlen - i, "%s", barebox_get_hostname());
+ 				break;
+ 			case 'u':
+ 				if (IS_ENABLED(CONFIG_GLOBALVAR))
