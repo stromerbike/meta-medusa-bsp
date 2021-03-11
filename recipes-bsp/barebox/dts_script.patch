@@ -420,7 +420,7 @@ index a21cb49f0..f141c933d 100644
 -			};
 +		/* #address-cells = <1>; */
 +		/* #size-cells = <1>; */
-+		timeout {
++		locktheft {
 +			reg = <0x00 0x1>;
 +			type = "uint8";
 +			default = <0x0>;
@@ -512,15 +512,12 @@ diff --git a/defaultenv/defaultenv-2-base/bin/init b/defaultenv/defaultenv-2-bas
 index 8d02e3d3a..2a71bc90c 100644
 --- a/defaultenv/defaultenv-2-base/bin/init
 +++ b/defaultenv/defaultenv-2-base/bin/init
-@@ -1,5 +1,12 @@
+@@ -1,5 +1,9 @@
  #!/bin/sh
  
 +
 +# set backlight to 50%
 +backlight0.brightness=50
-+
-+# set autoboot_timeout with timeout from EEPROM
-+global.autoboot_timeout=$state.timeout
 +
  export PATH=/env/bin
  

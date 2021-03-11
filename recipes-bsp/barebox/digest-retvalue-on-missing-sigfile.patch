@@ -1,0 +1,12 @@
+diff --git a/commands/digest.c b/commands/digest.c
+index 0edbbec32..d21081eed 100644
+--- a/commands/digest.c
++++ b/commands/digest.c
+@@ -157,6 +157,7 @@ static int do_digest(int argc, char *argv[])
+ 		sig = tmp_sig = read_file(sigfile, &siglen);
+ 		if (!tmp_sig) {
+ 			eprintf("file '%s' not found\n", sigfile);
++			ret = 1;
+ 			goto err;
+ 		}
+ 	}

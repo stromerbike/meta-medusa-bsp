@@ -8,6 +8,7 @@ FILESEXTRAPATHS_append := "${THISDIR}"
 SRC_URI_append = " \
     file://backend-stridesize-legacy.patch \
     file://cp-verbose.patch \
+    file://digest-retvalue-on-missing-sigfile.patch \
     file://digest-verbose.patch \
     file://dts_script.patch \
     file://global.boot.default_nand.patch \
