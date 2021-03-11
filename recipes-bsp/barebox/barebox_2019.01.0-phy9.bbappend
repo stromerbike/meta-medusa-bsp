@@ -106,7 +106,7 @@ if [ $? -eq 1 ]; then
 fi
 
 # Mount active system partition
-mkdir /mnt/rootfs
+mkdir -p /mnt/rootfs
 if [ $state.partition -eq 0 ]; then
     mount /dev/nand0.root.ubi.part0 /mnt/rootfs
     global.linux.bootargs.dyn.root="root=ubi0:part0 ubi.mtd=root rootfstype=ubifs rw vt.global_cursor_default=0 fsck.make=skip quiet"
