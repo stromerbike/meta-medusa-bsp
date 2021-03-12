@@ -11,7 +11,7 @@ SRC_URI_append = " \
     file://digest-retvalue-on-missing-sigfile.patch \
     file://digest-verbose.patch \
     file://dts_script.patch \
-    file://global.boot.default_nand.patch \
+    file://global.boot.default_update.patch \
     file://powerlock.patch \
     file://process_escape_sequence_use_hostname.patch \
     file://set_hostname_imx6ul-imx6ull-medusa.patch \
@@ -81,6 +81,45 @@ python do_env_append() {
     env_rm(d, "nv/bootchooser.system1.boot")
     env_rm(d, "nv/bootchooser.state_prefix")
 
+    env_add(d, "boot/update",
+"""#!/bin/sh
+    # RGB_ON activate, init LED chip and activate left and right LED as white
+    gpio_direction_output 164 1
+    i2c_write -b 1 -a 0x35 -r 0x36 0x53
+    i2c_write -b 1 -a 0x35 -r 0x00 0x40
+    i2c_write -b 1 -a 0x35 -r 0x16 0xff
+    i2c_write -b 1 -a 0x35 -r 0x17 0xff
+    i2c_write -b 1 -a 0x35 -r 0x18 0xff
+    i2c_write -b 1 -a 0x35 -r 0x19 0xff
+    i2c_write -b 1 -a 0x35 -r 0x1a 0xff
+    i2c_write -b 1 -a 0x35 -r 0x1b 0xff
+    echo DISCONNECT USB FROM PC NOW and connect USB drive
+    echo ON_SWITCH: waiting to be pressed for invoking /env/update
+    echo CTRL+C to abort
+    while true; do
+        echo -n .
+        gpio_get_value 130
+        if [ $? -eq 1 ]; then
+            echo
+            echo ON_SWITCH: pressed
+            state.locktheft=0
+            echo Set state.locktheft to default: $state.locktheft
+            /env/update
+            echo ON_SWITCH: waiting to be pressed for invoking /env/update again
+            echo CTRL+C to abort
+        fi
+        # Blink right led
+        i2c_write -b 1 -a 0x35 -r 0x19 0x00
+        i2c_write -b 1 -a 0x35 -r 0x1a 0x00
+        i2c_write -b 1 -a 0x35 -r 0x1b 0x00
+        msleep 250
+        i2c_write -b 1 -a 0x35 -r 0x19 0xff
+        i2c_write -b 1 -a 0x35 -r 0x1a 0xff
+        i2c_write -b 1 -a 0x35 -r 0x1b 0xff
+        msleep 250
+    done
+""")
+
     # Left LED:
     # - Off:     Kernel image present
     # - White:   No Kernel image present
@@ -102,7 +141,7 @@ gpio_direction_input 130
 gpio_get_value 130
 if [ $? -eq 1 ]; then
     echo ON_SWITCH: pressed
-    ./env/update
+    /env/update
 fi
 
 # Mount active system partition
@@ -138,7 +177,7 @@ if [ -e /mnt/rootfs/boot/zImage ]; then
         fi
     fi
 else
-    # RGB_ON activate, init LED chip and activate left LEDs as white
+    # RGB_ON activate, init LED chip and activate left LED as white
     gpio_direction_output 164 1
     i2c_write -b 1 -a 0x35 -r 0x36 0x53
     i2c_write -b 1 -a 0x35 -r 0x00 0x40
@@ -152,7 +191,7 @@ else
         i2c_write -b 1 -a 0x35 -r 0x1b 0xff
     fi
     echo DISCONNECT USB FROM PC NOW and connect USB drive
-    echo ON_SWITCH: waiting to be pressed for invoking ./env/update
+    echo ON_SWITCH: waiting to be pressed for invoking /env/update
     echo CTRL+C to abort
     while true; do
         echo -n .
@@ -160,16 +199,16 @@ else
         if [ $? -eq 1 ]; then
             echo
             echo ON_SWITCH: pressed
-            ./env/update
-            echo ON_SWITCH: waiting to be pressed for invoking ./env/update again
+            /env/update
+            echo ON_SWITCH: waiting to be pressed for invoking /env/update again
             echo CTRL+C to abort
         fi
-        msleep 100
+        msleep 500
     done
 fi
 """)
 
-    env_add(d, "musb",
+    env_add(d, "mountdisk",
 """#!/bin/sh
 gpio_direction_output 23 1
 gpio_direction_output 160 1

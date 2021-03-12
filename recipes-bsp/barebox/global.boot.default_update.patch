@@ -7,7 +7,7 @@ index 8d02e3d3a..d7940d0c3 100644
  [ -z "${global.autoboot_abort_key}" ] && global.autoboot_abort_key=any
  magicvar -a global.autoboot_abort_key "key to abort automatic booting (valid options: any, ctrl-c)"
 -[ -z "${global.boot.default}" ] && global.boot.default=net
-+[ -z "${global.boot.default}" ] && global.boot.default=nand
++[ -z "${global.boot.default}" ] && global.boot.default=update
  [ -z "${global.editcmd}" ] && global.editcmd=sedit
  
  [ -e /env/config-board ] && /env/config-board
