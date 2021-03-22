@@ -83,32 +83,66 @@ python do_env_append() {
 
     env_add(d, "boot/update",
 """#!/bin/sh
-    # RGB_ON activate, init LED chip and activate left and right LED as white
+    # RGB_ON activate, init LED chip and activate left LED as white
     gpio_direction_output 164 1
     i2c_write -b 1 -a 0x35 -r 0x36 0x53
     i2c_write -b 1 -a 0x35 -r 0x00 0x40
     i2c_write -b 1 -a 0x35 -r 0x16 0xff
     i2c_write -b 1 -a 0x35 -r 0x17 0xff
     i2c_write -b 1 -a 0x35 -r 0x18 0xff
-    i2c_write -b 1 -a 0x35 -r 0x19 0xff
-    i2c_write -b 1 -a 0x35 -r 0x1a 0xff
-    i2c_write -b 1 -a 0x35 -r 0x1b 0xff
-    echo DISCONNECT USB FROM PC NOW and connect USB drive
-    echo ON_SWITCH: waiting to be pressed for invoking /env/update
-    echo CTRL+C to abort
+
+    MSG_ERR="\e[31mERROR:\e[0m"
+    MSG_NOTICE="\e[34mNOTICE:\e[0m"
+    MSG_INFO="\e[36mINFO:\e[0m"
+    ERROR_TEXT="ON_SWITCH: waiting to be pressed for error confirmation, swap USB disk now if desired"
+
+    echo -e $MSG_INFO DISCONNECT USB FROM PC NOW and connect USB disk
+    echo -e $MSG_INFO ON_SWITCH: waiting to be pressed for invoking /env/update
+    echo -e $MSG_INFO CTRL+C to abort
     while true; do
         echo -n .
         gpio_get_value 130
         if [ $? -eq 1 ]; then
             echo
-            echo ON_SWITCH: pressed
+            echo -e -n $MSG_NOTICE ON_SWITCH: pressed
+            WAITFORRELEASE=1
+            while [ $WAITFORRELEASE -eq 1 ]; do
+                if gpio_get_value 130; then
+                    echo " and released"
+                    WAITFORRELEASE=0
+                fi
+                msleep 50
+            done
+############ done in update boot only but not in nand boot
             state.locktheft=0
-            echo Set state.locktheft to default: $state.locktheft
+############
             /env/update
-            echo ON_SWITCH: waiting to be pressed for invoking /env/update again
-            echo CTRL+C to abort
+            # Activate right LED as red
+            i2c_write -b 1 -a 0x35 -r 0x19 0xff
+            i2c_write -b 1 -a 0x35 -r 0x1a 0x00
+            i2c_write -b 1 -a 0x35 -r 0x1b 0x00
+            umount /mnt/disk0.0
+            echo -e $MSG_ERR $ERROR_TEXT
+            WAITFORPRESSANDRELEASE=1
+            while [ $WAITFORPRESSANDRELEASE -eq 1 ]; do
+                gpio_get_value 130
+                if [ $? -eq 1 ]; then
+                    echo -e -n $MSG_NOTICE ON_SWITCH: pressed
+                    while [ $WAITFORPRESSANDRELEASE -eq 1 ]; do
+                        if gpio_get_value 130; then
+                            echo " and released"
+                            WAITFORPRESSANDRELEASE=0
+                        fi
+                        msleep 50
+                    done
+                fi
+                detect usb2
+            done
+            echo -e $MSG_INFO ON_SWITCH: waiting to be pressed for invoking /env/update again
+            echo -e $MSG_INFO CTRL+C to abort
+            echo -e -n $COLOR_INFO
         fi
-        # Blink right led
+        # Blink right led in white
         i2c_write -b 1 -a 0x35 -r 0x19 0x00
         i2c_write -b 1 -a 0x35 -r 0x1a 0x00
         i2c_write -b 1 -a 0x35 -r 0x1b 0x00
@@ -190,18 +224,58 @@ else
         i2c_write -b 1 -a 0x35 -r 0x1a 0xff
         i2c_write -b 1 -a 0x35 -r 0x1b 0xff
     fi
-    echo DISCONNECT USB FROM PC NOW and connect USB drive
-    echo ON_SWITCH: waiting to be pressed for invoking /env/update
-    echo CTRL+C to abort
+
+    MSG_ERR="\e[31mERROR:\e[0m"
+    MSG_NOTICE="\e[34mNOTICE:\e[0m"
+    MSG_INFO="\e[36mINFO:\e[0m"
+    ERROR_TEXT="ON_SWITCH: waiting to be pressed for error confirmation, swap USB disk now if desired"
+
+    echo -e $MSG_INFO DISCONNECT USB FROM PC NOW and connect USB disk
+    echo -e $MSG_INFO ON_SWITCH: waiting to be pressed for invoking /env/update
+    echo -e $MSG_INFO CTRL+C to abort
     while true; do
         echo -n .
         gpio_get_value 130
         if [ $? -eq 1 ]; then
             echo
-            echo ON_SWITCH: pressed
+            echo -e -n $MSG_NOTICE ON_SWITCH: pressed
+            WAITFORRELEASE=1
+            while [ $WAITFORRELEASE -eq 1 ]; do
+                if gpio_get_value 130; then
+                    echo " and released"
+                    WAITFORRELEASE=0
+                fi
+                msleep 50
+            done
             /env/update
-            echo ON_SWITCH: waiting to be pressed for invoking /env/update again
-            echo CTRL+C to abort
+            # Activate right LED as red
+            i2c_write -b 1 -a 0x35 -r 0x19 0xff
+            i2c_write -b 1 -a 0x35 -r 0x1a 0x00
+            i2c_write -b 1 -a 0x35 -r 0x1b 0x00
+            umount /mnt/disk0.0
+            echo -e $MSG_ERR $ERROR_TEXT
+            WAITFORPRESSANDRELEASE=1
+            while [ $WAITFORPRESSANDRELEASE -eq 1 ]; do
+                gpio_get_value 130
+                if [ $? -eq 1 ]; then
+                    echo -e -n $MSG_NOTICE ON_SWITCH: pressed
+                    while [ $WAITFORPRESSANDRELEASE -eq 1 ]; do
+                        if gpio_get_value 130; then
+                            echo " and released"
+                            WAITFORPRESSANDRELEASE=0
+                        fi
+                        msleep 50
+                    done
+                fi
+                detect usb2
+            done
+            echo -e $MSG_INFO ON_SWITCH: waiting to be pressed for invoking /env/update again
+            echo -e $MSG_INFO CTRL+C to abort
+            echo -e -n $COLOR_INFO
+            # Activate right LED as white
+            i2c_write -b 1 -a 0x35 -r 0x19 0xff
+            i2c_write -b 1 -a 0x35 -r 0x1a 0xff
+            i2c_write -b 1 -a 0x35 -r 0x1b 0xff
         fi
         msleep 500
     done
