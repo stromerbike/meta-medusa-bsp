@@ -140,7 +140,6 @@ python do_env_append() {
             done
             echo -e $MSG_INFO ON_SWITCH: waiting to be pressed for invoking /env/update again
             echo -e $MSG_INFO CTRL+C to abort
-            echo -e -n $COLOR_INFO
         fi
         # Blink right led in white
         i2c_write -b 1 -a 0x35 -r 0x19 0x00
@@ -271,7 +270,6 @@ else
             done
             echo -e $MSG_INFO ON_SWITCH: waiting to be pressed for invoking /env/update again
             echo -e $MSG_INFO CTRL+C to abort
-            echo -e -n $COLOR_INFO
             # Activate right LED as white
             i2c_write -b 1 -a 0x35 -r 0x19 0xff
             i2c_write -b 1 -a 0x35 -r 0x1a 0xff
