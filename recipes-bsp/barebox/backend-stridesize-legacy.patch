@@ -64,7 +64,7 @@ index 4369f76e3..39d625924 100644
  		}
  		memcpy(sv->raw, data + sv->start, sv->size);
 diff --git a/common/state/backend_storage.c b/common/state/backend_storage.c
-index c6ebe8624..5900c9404 100644
+index c6ebe8624..914eab1eb 100644
 --- a/common/state/backend_storage.c
 +++ b/common/state/backend_storage.c
 @@ -49,6 +49,40 @@
@@ -116,7 +116,7 @@ index c6ebe8624..5900c9404 100644
 -			dev_info(storage->dev, "Ignoring broken bucket %d@0x%08lx...\n", bucket->num, bucket->offset);
 +		if (ret) {
 +			dev_notice(storage->dev, "Adjusting broken bucket %d@0x%08lx stridesize to legacy value 0x%x\n", bucket->num, bucket->offset, stridesize_legacy);
-+			bucket->adjust(bucket, storage->offset + bucket->num * storage->offset + bucket->num * stridesize_legacy, stridesize_legacy);
++			bucket->adjust(bucket, storage->offset + bucket->num * stridesize_legacy, stridesize_legacy);
 +
 +			ret = bucket->read(bucket, &bucket->buf, &bucket->len);
 +			if (ret == -EUCLEAN)
@@ -129,7 +129,7 @@ index c6ebe8624..5900c9404 100644
 +				bucket_used = bucket;
 +			if (ret) {
 +				dev_notice(storage->dev, "Adjusting broken bucket %d@0x%08lx stridesize back to new value 0x%x\n", bucket->num, bucket->offset, storage->stridesize);
-+				bucket->adjust(bucket, storage->offset + bucket->num * storage->offset + bucket->num * storage->stridesize, storage->stridesize);
++				bucket->adjust(bucket, storage->offset + bucket->num * storage->stridesize, storage->stridesize);
 +
 +				ret = bucket->read(bucket, &bucket->buf, &bucket->len);
 +				if (ret == -EUCLEAN)
