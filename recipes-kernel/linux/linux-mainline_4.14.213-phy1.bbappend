@@ -13,7 +13,7 @@ FILESEXTRAPATHS_append := "${THISDIR}/linux-mainline:"
 
 KERNEL_DEVICETREE_append = " imx6ull-medusa.dtb"
 
-SRC_URI += " file://config_modification.cfg"
+SRC_URI += " file://defconfig"
 SRC_URI += " file://imx6ul-medusa.dts"
 SRC_URI += " file://imx6ull-medusa.dts"
 SRC_URI += " file://clk_fix.patch"
