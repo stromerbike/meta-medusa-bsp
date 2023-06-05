@@ -1,8 +1,8 @@
 diff --git a/arch/arm/dts/imx6ul-phytec-phycore-som-nand.dts b/arch/arm/dts/imx6ul-phytec-phycore-som-nand.dts
-index 20c03184f..63bade301 100644
+index c8d43c5e25..8bcf8b84ca 100644
 --- a/arch/arm/dts/imx6ul-phytec-phycore-som-nand.dts
 +++ b/arch/arm/dts/imx6ul-phytec-phycore-som-nand.dts
-@@ -52,3 +52,19 @@
+@@ -48,3 +48,19 @@
  &usbotg2 {
  	status = "okay";
  };
@@ -23,7 +23,7 @@ index 20c03184f..63bade301 100644
 +	status = "okay";
 +};
 diff --git a/arch/arm/dts/imx6ul-phytec-phycore-som.dtsi b/arch/arm/dts/imx6ul-phytec-phycore-som.dtsi
-index 50b9469f2..42c20615c 100644
+index c7c657bcd4..ddb061b063 100644
 --- a/arch/arm/dts/imx6ul-phytec-phycore-som.dtsi
 +++ b/arch/arm/dts/imx6ul-phytec-phycore-som.dtsi
 @@ -25,13 +25,51 @@
@@ -55,7 +55,7 @@ index 50b9469f2..42c20615c 100644
 +		compatible = "pwm-backlight";
 +		/* PWM period is vriten in nanoseconds
 +		   10KHz is 100.000 nanoseconds */
-+		pwms = <&pwm5 0 100000>;
++		pwms = <&pwm5 0 100000 0>;
 +		/* Brightnes is equal to PWM duty cycle */
 +		brightness-levels = < 0  1  2  3  4  5  6  7  8  9
 +							 10 11 12 13 14 15 16 17 18 19
@@ -70,7 +70,7 @@ index 50b9469f2..42c20615c 100644
 +							 100>;
 +		default-brightness-level = <50>;
 +		power-supply = <&reg_pwm_3v3>;
-+		status = "disabled";
++		status = "okay";
 +	};
 +};
 +
@@ -82,7 +82,7 @@ index 50b9469f2..42c20615c 100644
  };
  
  &fec1 {
-@@ -82,29 +120,44 @@
+@@ -85,29 +123,44 @@
  	clock-frequency = <100000>;
  	status = "disabled";
  
@@ -137,7 +137,7 @@ index 50b9469f2..42c20615c 100644
  	status = "disabled";
  };
  
-@@ -128,100 +181,122 @@
+@@ -131,100 +184,122 @@
  	};
  };
  
@@ -339,7 +339,7 @@ index 50b9469f2..42c20615c 100644
  			fsl,pins = <
  				MX6UL_PAD_NAND_WE_B__USDHC2_CMD     	0x17059
  				MX6UL_PAD_NAND_RE_B__USDHC2_CLK     	0x10059
-@@ -234,7 +309,7 @@
+@@ -237,7 +312,7 @@
  				MX6UL_PAD_NAND_DATA06__USDHC2_DATA6 	0x17059
  				MX6UL_PAD_NAND_DATA07__USDHC2_DATA7 	0x17059
  			>;
@@ -349,10 +349,10 @@ index 50b9469f2..42c20615c 100644
  };
  
 diff --git a/arch/arm/dts/imx6ul-phytec-state.dtsi b/arch/arm/dts/imx6ul-phytec-state.dtsi
-index a21cb49f0..f141c933d 100644
+index 78a32ed96b..a50cfa8465 100644
 --- a/arch/arm/dts/imx6ul-phytec-state.dtsi
 +++ b/arch/arm/dts/imx6ul-phytec-state.dtsi
-@@ -9,73 +9,102 @@
+@@ -9,74 +9,102 @@
  		state = &state;
  	};
  
@@ -363,11 +363,11 @@ index a21cb49f0..f141c933d 100644
  		compatible = "barebox,state";
  		backend-type = "raw";
 -		backend = <&backend_update_eeprom>;
--		backend-stridesize = <54>;
 +		/* backend = <&backend_state_eeprom>; */
 +		backend = <&eeprom>;
 +		/* backend = &eeprom; */
-+		backend-storage-type = "direct";
+ 		backend-storage-type = "direct";
+-		backend-stridesize = <54>;
 +		backend-stridesize = <0x70>;
  		status = "disabled";
  
@@ -508,17 +508,16 @@ index a21cb49f0..f141c933d 100644
  	};
  };
 +#endif
-diff --git a/defaultenv/defaultenv-2-base/bin/init b/defaultenv/defaultenv-2-base/bin/init
-index 8d02e3d3a..2a71bc90c 100644
---- a/defaultenv/defaultenv-2-base/bin/init
-+++ b/defaultenv/defaultenv-2-base/bin/init
-@@ -1,5 +1,9 @@
- #!/bin/sh
+diff --git a/common/startup.c b/common/startup.c
+index f53b73f81a..54703f62c2 100644
+--- a/common/startup.c
++++ b/common/startup.c
+@@ -244,6 +244,8 @@ static int run_init(void)
+ 	glob_t g;
+ 	int i, ret;
  
++	setenv("backlight0.brightness", "50");
 +
-+# set backlight to 50%
-+backlight0.brightness=50
-+
- export PATH=/env/bin
+ 	setenv("PATH", "/env/bin");
+ 	export("PATH");
  
- global hostname

@@ -2,24 +2,23 @@
 # Copyright (C) 2019 Escatec Switzerland AG
 #
 
-FILESEXTRAPATHS_append := "${THISDIR}"
+FILESEXTRAPATHS:append := "${THISDIR}"
 
 # Patch which modifies dts and some scripts
-SRC_URI_append = " \
+SRC_URI:append = " \
     file://backend-stridesize-legacy.patch \
     file://cp-verbose.patch \
     file://digest-retvalue-on-missing-sigfile.patch \
     file://digest-verbose.patch \
     file://dts_script.patch \
     file://global.boot.default_update.patch \
-    file://powerlock.patch \
     file://process_escape_sequence_use_hostname.patch \
-    file://set_hostname_imx6ul-imx6ull-medusa.patch \
+    file://set_powerlock_and_hostname_imx6ul-imx6ull-medusa.patch \
 "
 
-BAREBOX_IMAGE_BASE_NAME = "barebox-${PV}-#${DISTRO_VERSION}-imx6ul\(l\)-${DISTRO}"
+BAREBOX_IMAGE_NAME = "barebox-${PV}-#${DISTRO_VERSION}-imx6ul\(l\)-${DISTRO}"
 
-do_configure_append() {
+do_configure:append() {
     PHY_TAG=`echo ${PV} | sed "s/.*-//"`
     kconfig_set LOCALVERSION \"-${PHY_TAG}\"
 
@@ -52,44 +51,34 @@ do_configure_append() {
     kconfig_set CMD_2048 y
 }
 
-do_compile_prepend() {
+do_compile:prepend() {
     export KBUILD_BUILD_VERSION="${DISTRO_VERSION}"
     # DISTRO_VERSION already reflects the timestamp and can be used otherwise
     export KBUILD_BUILD_TIMESTAMP="imx6ul(l)-${DISTRO}"
 }
 
-do_install_append() {
+do_install:append() {
     # Remove barebox from rootfs
-    rm ${D}${base_bootdir}/${BAREBOX_IMAGE_BASE_NAME}.bin
-    rm ${D}${base_bootdir}/${BAREBOX_BIN_SYMLINK}
+    rm ${D}${base_bootdir}/${BAREBOX_IMAGE_NAME}.bin
+    rm ${D}${base_bootdir}/${BAREBOX_BIN_LINK_NAME}
 }
 
-python do_env_append() {
+python do_env:append() {
     env_add(d, "nv/allow_color", "true\n")
     env_add(d, "nv/autoboot_timeout", "0\n")
     env_add(d, "nv/vt.global_cursor_default", "0\n")
 
-    env_rm(d, "boot/emmc")
-    env_rm(d, "boot/mmc")
-    env_rm(d, "boot/net")
-    env_rm(d, "boot/system0")
-    env_rm(d, "boot/system1")
-    env_rm(d, "boot/spi")
-
-    env_rm(d, "nv/bootchooser.targets")
-    env_rm(d, "nv/bootchooser.system0.boot")
-    env_rm(d, "nv/bootchooser.system1.boot")
-    env_rm(d, "nv/bootchooser.state_prefix")
+    env_rm(d, "nv/linux.bootargs.rootfs")
 
     env_add(d, "boot/update",
 """#!/bin/sh
     # RGB_ON activate, init LED chip and activate left LED as white
-    gpio_direction_output 164 1
-    i2c_write -b 1 -a 0x35 -r 0x36 0x53
-    i2c_write -b 1 -a 0x35 -r 0x00 0x40
-    i2c_write -b 1 -a 0x35 -r 0x16 0xff
-    i2c_write -b 1 -a 0x35 -r 0x17 0xff
-    i2c_write -b 1 -a 0x35 -r 0x18 0xff
+    gpio_direction_output 244 1
+    i2c_write -b 2 -a 0x35 -r 0x36 0x53
+    i2c_write -b 2 -a 0x35 -r 0x00 0x40
+    i2c_write -b 2 -a 0x35 -r 0x16 0xff
+    i2c_write -b 2 -a 0x35 -r 0x17 0xff
+    i2c_write -b 2 -a 0x35 -r 0x18 0xff
 
     MSG_ERR="\e[31mERROR:\e[0m"
     MSG_NOTICE="\e[34mNOTICE:\e[0m"
@@ -118,9 +107,9 @@ python do_env_append() {
 ############
             /env/update
             # Activate right LED as red
-            i2c_write -b 1 -a 0x35 -r 0x19 0xff
-            i2c_write -b 1 -a 0x35 -r 0x1a 0x00
-            i2c_write -b 1 -a 0x35 -r 0x1b 0x00
+            i2c_write -b 2 -a 0x35 -r 0x19 0xff
+            i2c_write -b 2 -a 0x35 -r 0x1a 0x00
+            i2c_write -b 2 -a 0x35 -r 0x1b 0x00
             umount /mnt/disk0.0
             echo -e $MSG_ERR $ERROR_TEXT
             WAITFORPRESSANDRELEASE=1
@@ -142,13 +131,13 @@ python do_env_append() {
             echo -e $MSG_INFO CTRL+C to abort
         fi
         # Blink right led in white
-        i2c_write -b 1 -a 0x35 -r 0x19 0x00
-        i2c_write -b 1 -a 0x35 -r 0x1a 0x00
-        i2c_write -b 1 -a 0x35 -r 0x1b 0x00
+        i2c_write -b 2 -a 0x35 -r 0x19 0x00
+        i2c_write -b 2 -a 0x35 -r 0x1a 0x00
+        i2c_write -b 2 -a 0x35 -r 0x1b 0x00
         msleep 250
-        i2c_write -b 1 -a 0x35 -r 0x19 0xff
-        i2c_write -b 1 -a 0x35 -r 0x1a 0xff
-        i2c_write -b 1 -a 0x35 -r 0x1b 0xff
+        i2c_write -b 2 -a 0x35 -r 0x19 0xff
+        i2c_write -b 2 -a 0x35 -r 0x1a 0xff
+        i2c_write -b 2 -a 0x35 -r 0x1b 0xff
         msleep 250
     done
 """)
@@ -181,10 +170,10 @@ fi
 mkdir -p /mnt/rootfs
 if [ $state.partition -eq 0 ]; then
     mount /dev/nand0.root.ubi.part0 /mnt/rootfs
-    global.linux.bootargs.dyn.root="root=ubi0:part0 ubi.mtd=root rootfstype=ubifs rw vt.global_cursor_default=0 fsck.make=skip quiet"
+    global linux.bootargs.dyn.root="root=ubi0:part0 ubi.mtd=root rootfstype=ubifs rw vt.global_cursor_default=0 fsck.make=skip quiet"
 else
     mount /dev/nand0.root.ubi.part1 /mnt/rootfs
-    global.linux.bootargs.dyn.root="root=ubi0:part1 ubi.mtd=root rootfstype=ubifs rw vt.global_cursor_default=0 fsck.make=skip quiet"
+    global linux.bootargs.dyn.root="root=ubi0:part1 ubi.mtd=root rootfstype=ubifs rw vt.global_cursor_default=0 fsck.make=skip quiet"
 fi
 
 # Fall back to imx6ul-medusa.dtb because booting with potential errors is better than being stuck in bootloader
@@ -194,34 +183,34 @@ if [ -e /mnt/rootfs/boot/zImage ]; then
         global.bootm.oftree="/mnt/rootfs/boot/${global.hostname}.dtb"
     else
         # RGB_ON activate and init LED chip
-        gpio_direction_output 164 1
-        i2c_write -b 1 -a 0x35 -r 0x36 0x53
-        i2c_write -b 1 -a 0x35 -r 0x00 0x40
+        gpio_direction_output 244 1
+        i2c_write -b 2 -a 0x35 -r 0x36 0x53
+        i2c_write -b 2 -a 0x35 -r 0x00 0x40
         if [ ! -e /mnt/rootfs/boot/imx6ul-medusa.dtb ]; then
             # Activate right LED as white
-            i2c_write -b 1 -a 0x35 -r 0x19 0xff
-            i2c_write -b 1 -a 0x35 -r 0x1a 0xff
-            i2c_write -b 1 -a 0x35 -r 0x1b 0xff
+            i2c_write -b 2 -a 0x35 -r 0x19 0xff
+            i2c_write -b 2 -a 0x35 -r 0x1a 0xff
+            i2c_write -b 2 -a 0x35 -r 0x1b 0xff
         else
             # Activate right LED as magenta
-            i2c_write -b 1 -a 0x35 -r 0x19 0xff
-            i2c_write -b 1 -a 0x35 -r 0x1b 0xff
+            i2c_write -b 2 -a 0x35 -r 0x19 0xff
+            i2c_write -b 2 -a 0x35 -r 0x1b 0xff
             global.bootm.oftree="/mnt/rootfs/boot/imx6ul-medusa.dtb"
         fi
     fi
 else
     # RGB_ON activate, init LED chip and activate left LED as white
-    gpio_direction_output 164 1
-    i2c_write -b 1 -a 0x35 -r 0x36 0x53
-    i2c_write -b 1 -a 0x35 -r 0x00 0x40
-    i2c_write -b 1 -a 0x35 -r 0x16 0xff
-    i2c_write -b 1 -a 0x35 -r 0x17 0xff
-    i2c_write -b 1 -a 0x35 -r 0x18 0xff
+    gpio_direction_output 244 1
+    i2c_write -b 2 -a 0x35 -r 0x36 0x53
+    i2c_write -b 2 -a 0x35 -r 0x00 0x40
+    i2c_write -b 2 -a 0x35 -r 0x16 0xff
+    i2c_write -b 2 -a 0x35 -r 0x17 0xff
+    i2c_write -b 2 -a 0x35 -r 0x18 0xff
     if [ ! -e /mnt/rootfs/boot/*-medusa.dtb ]; then
         # Activate right LED as white
-        i2c_write -b 1 -a 0x35 -r 0x19 0xff
-        i2c_write -b 1 -a 0x35 -r 0x1a 0xff
-        i2c_write -b 1 -a 0x35 -r 0x1b 0xff
+        i2c_write -b 2 -a 0x35 -r 0x19 0xff
+        i2c_write -b 2 -a 0x35 -r 0x1a 0xff
+        i2c_write -b 2 -a 0x35 -r 0x1b 0xff
     fi
 
     MSG_ERR="\e[31mERROR:\e[0m"
@@ -248,9 +237,9 @@ else
             done
             /env/update
             # Activate right LED as red
-            i2c_write -b 1 -a 0x35 -r 0x19 0xff
-            i2c_write -b 1 -a 0x35 -r 0x1a 0x00
-            i2c_write -b 1 -a 0x35 -r 0x1b 0x00
+            i2c_write -b 2 -a 0x35 -r 0x19 0xff
+            i2c_write -b 2 -a 0x35 -r 0x1a 0x00
+            i2c_write -b 2 -a 0x35 -r 0x1b 0x00
             umount /mnt/disk0.0
             echo -e $MSG_ERR $ERROR_TEXT
             WAITFORPRESSANDRELEASE=1
@@ -271,9 +260,9 @@ else
             echo -e $MSG_INFO ON_SWITCH: waiting to be pressed for invoking /env/update again
             echo -e $MSG_INFO CTRL+C to abort
             # Activate right LED as white
-            i2c_write -b 1 -a 0x35 -r 0x19 0xff
-            i2c_write -b 1 -a 0x35 -r 0x1a 0xff
-            i2c_write -b 1 -a 0x35 -r 0x1b 0xff
+            i2c_write -b 2 -a 0x35 -r 0x19 0xff
+            i2c_write -b 2 -a 0x35 -r 0x1a 0xff
+            i2c_write -b 2 -a 0x35 -r 0x1b 0xff
         fi
         msleep 500
     done
@@ -283,8 +272,8 @@ fi
     env_add(d, "mountdisk",
 """#!/bin/sh
 gpio_direction_output 23 1
-gpio_direction_output 160 1
-gpio_direction_output 170 1
+gpio_direction_output 240 1
+gpio_direction_output 250 1
 otg.mode=host
 detect -a
 mount /dev/disk0.0

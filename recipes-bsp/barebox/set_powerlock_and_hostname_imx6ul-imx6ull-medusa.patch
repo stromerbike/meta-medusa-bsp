@@ -1,12 +1,19 @@
 diff --git a/arch/arm/boards/phytec-som-imx6/board.c b/arch/arm/boards/phytec-som-imx6/board.c
-index ace55cdf5..afbd19ac6 100644
+index 1e515a093a..7985623620 100644
 --- a/arch/arm/boards/phytec-som-imx6/board.c
 +++ b/arch/arm/boards/phytec-som-imx6/board.c
-@@ -194,7 +194,15 @@ static int physom_imx6_devices_init(void)
+@@ -202,7 +202,22 @@ static int physom_imx6_probe(struct device_d *dev)
+ 						"/dev/mmc0", 0);
  
- 	} else if (of_machine_is_compatible("phytec,imx6ul-pcl063-nand")
- 		|| of_machine_is_compatible("phytec,imx6ul-pcl063-emmc")) {
+ 	} else if (flags & IS_PHYCORE_UL) {
 -		barebox_set_hostname("phyCORE-i.MX6UL");
++		ret = of_devices_ensure_probed_by_property("gpio-controller");
++		if (ret)
++			return ret;
++
++		gpio_direction_output(IMX_GPIO_NR(5, 1), 1);
++		pr_notice("powerlock: enabled\n"); // P_L_SIGNAL on gpio129
++
 +		int cpu_type = __imx6_cpu_type();
 +		if (cpu_type == IMX6_CPUTYPE_IMX6UL) {
 +			barebox_set_hostname("imx6ul-medusa");

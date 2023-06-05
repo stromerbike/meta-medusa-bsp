@@ -1,5 +1,5 @@
 diff --git a/common/state/backend_bucket_direct.c b/common/state/backend_bucket_direct.c
-index fc9061527..2d6d86aab 100644
+index 117cdfb46c..77a5ce4781 100644
 --- a/common/state/backend_bucket_direct.c
 +++ b/common/state/backend_bucket_direct.c
 @@ -45,6 +45,17 @@ static inline struct state_backend_storage_bucket_direct
@@ -20,7 +20,7 @@ index fc9061527..2d6d86aab 100644
  static int state_backend_bucket_direct_read(struct state_backend_storage_bucket
  					    *bucket, void ** buf_out,
  					    ssize_t * len_out)
-@@ -184,6 +195,7 @@ int state_backend_bucket_direct_create(struct device_d *dev, const char *path,
+@@ -183,6 +194,7 @@ int state_backend_bucket_direct_create(struct device_d *dev, const char *path,
  
  	direct->bucket.read = state_backend_bucket_direct_read;
  	direct->bucket.write = state_backend_bucket_direct_write;
@@ -29,19 +29,25 @@ index fc9061527..2d6d86aab 100644
  	*bucket = &direct->bucket;
  
 diff --git a/common/state/backend_format_raw.c b/common/state/backend_format_raw.c
-index 4369f76e3..39d625924 100644
+index 1fecdeb9cf..914fb1021d 100644
 --- a/common/state/backend_format_raw.c
 +++ b/common/state/backend_format_raw.c
-@@ -116,7 +116,7 @@ static int backend_format_raw_verify(struct state_backend_format *format,
+@@ -115,10 +115,11 @@ static int backend_format_raw_verify(struct state_backend_format *format,
+ 
  	header = (struct backend_raw_header *)buf;
  	crc = crc32(0, header, sizeof(*header) - sizeof(uint32_t));
- 	if (crc != header->header_crc) {
--		dev_err(backend_raw->dev, "Error, invalid header crc in raw format, calculated 0x%08x, found 0x%08x\n",
+-	if (crc != header->header_crc)
+-		return dev_err_state_init(backend_raw->dev, header->header_crc ? -EINVAL : -ENOMEDIUM,
+-			"header crc in raw format, calculated 0x%08x, found 0x%08x\n",
++	if (crc != header->header_crc) {
 +		dev_notice(backend_raw->dev, "Error, invalid header crc in raw format, calculated 0x%08x, found 0x%08x\n",
  			crc, header->header_crc);
- 		return -EINVAL;
- 	}
-@@ -180,6 +180,7 @@ static int backend_format_raw_unpack(struct state_backend_format *format,
++		return -EINVAL;
++	}
+ 
+ 	if (magic && magic != header->magic) {
+ 		dev_err(backend_raw->dev, "Error, invalid magic in raw format 0x%08x, should be 0x%08x\n",
+@@ -179,6 +180,7 @@ static int backend_format_raw_unpack(struct state_backend_format *format,
  				     ssize_t len)
  {
  	struct state_variable *sv;
@@ -49,7 +55,7 @@ index 4369f76e3..39d625924 100644
  	const struct backend_raw_header *header;
  	const void *data;
  	struct state_backend_format_raw *backend_raw = get_format_raw(format);
-@@ -187,10 +188,11 @@ static int backend_format_raw_unpack(struct state_backend_format *format,
+@@ -187,11 +189,11 @@ static int backend_format_raw_unpack(struct state_backend_format *format,
  	header = (const struct backend_raw_header *)buf;
  	data = buf + sizeof(*header);
  
@@ -59,12 +65,13 @@ index 4369f76e3..39d625924 100644
 -			dev_err(backend_raw->dev, "State variable ends behind valid data, %s\n",
 +			dev_notice(backend_raw->dev, "State variable ends behind valid data, %s\n",
  				sv->name);
+-			ret = -ENOSPC;
 +			list_del(&sv->list);
  			continue;
  		}
  		memcpy(sv->raw, data + sv->start, sv->size);
 diff --git a/common/state/backend_storage.c b/common/state/backend_storage.c
-index c6ebe8624..914eab1eb 100644
+index c55d22e37f..b41b05a37d 100644
 --- a/common/state/backend_storage.c
 +++ b/common/state/backend_storage.c
 @@ -49,6 +49,40 @@
@@ -108,14 +115,14 @@ index c6ebe8624..914eab1eb 100644
  /**
   * state_storage_write - Writes the given data to the storage
   * @param storage Storage object
-@@ -165,19 +199,52 @@ int state_storage_read(struct state_backend_storage *storage,
- 		ret = format->verify(format, magic, bucket->buf, &bucket->len, flags);
- 		if (!ret && !bucket_used)
+@@ -173,17 +207,50 @@ int state_storage_read(struct state_backend_storage *storage,
+ 			zerobuckets++;
+ 		else if (!ret && !bucket_used)
  			bucket_used = bucket;
--		if (ret)
--			dev_info(storage->dev, "Ignoring broken bucket %d@0x%08lx...\n", bucket->num, bucket->offset);
-+		if (ret) {
-+			dev_notice(storage->dev, "Adjusting broken bucket %d@0x%08lx stridesize to legacy value 0x%x\n", bucket->num, bucket->offset, stridesize_legacy);
+-		else if (ret)
+-			dev_info(storage->dev, "Ignoring broken bucket %d@0x%08llx...\n", bucket->num, (long long) bucket->offset);
++		else if (ret) {
++			dev_notice(storage->dev, "Adjusting broken bucket %d@0x%08llx stridesize to legacy value 0x%x\n", bucket->num, (long long) bucket->offset, stridesize_legacy);
 +			bucket->adjust(bucket, storage->offset + bucket->num * stridesize_legacy, stridesize_legacy);
 +
 +			ret = bucket->read(bucket, &bucket->buf, &bucket->len);
@@ -128,7 +135,7 @@ index c6ebe8624..914eab1eb 100644
 +			if (!ret && !bucket_used)
 +				bucket_used = bucket;
 +			if (ret) {
-+				dev_notice(storage->dev, "Adjusting broken bucket %d@0x%08lx stridesize back to new value 0x%x\n", bucket->num, bucket->offset, storage->stridesize);
++				dev_notice(storage->dev, "Adjusting broken bucket %d@0x%08llx stridesize back to new value 0x%x\n", bucket->num, (long long) bucket->offset, storage->stridesize);
 +				bucket->adjust(bucket, storage->offset + bucket->num * storage->stridesize, storage->stridesize);
 +
 +				ret = bucket->read(bucket, &bucket->buf, &bucket->len);
@@ -141,7 +148,7 @@ index c6ebe8624..914eab1eb 100644
 +				if (!ret && !bucket_used)
 +					bucket_used = bucket;
 +				if (ret)
-+					dev_info(storage->dev, "Ignoring broken bucket %d@0x%08lx...\n", bucket->num, bucket->offset);
++					dev_info(storage->dev, "Ignoring broken bucket %d@0x%08llx...\n", bucket->num, (long long) bucket->offset);
 +			} else {
 +				if (storage->stridesize != stridesize_legacy) {
 +					dev_notice(storage->dev, "Adjusting storage stridesize to legacy value 0x%x\n", stridesize_legacy);
@@ -153,39 +160,21 @@ index c6ebe8624..914eab1eb 100644
  
  	dev_dbg(storage->dev, "Checking redundant buckets finished.\n");
  
- 	if (!bucket_used) {
--		dev_err(storage->dev, "Failed to find any valid state copy in any bucket\n");
-+		dev_err(storage->dev, "Failed to find any valid state copy in any bucket, stridesize value 0x%x\n", storage->stridesize);
+ 	if (!bucket_used)
+ 		return dev_err_state_init(storage->dev, zerobuckets == totalbuckets ? -ENOMEDIUM : -ENOENT,
+-					  "no valid state copy in any bucket\n");
++					  "no valid state copy in any bucket, stridesize value 0x%x\n", storage->stridesize);
  
- 		return -ENOENT;
- 	}
- 
--	dev_info(storage->dev, "Using bucket %d@0x%08lx\n", bucket_used->num, bucket_used->offset);
-+	dev_info(storage->dev, "Using bucket %d@0x%08lx, stridesize value 0x%x\n", bucket_used->num, bucket_used->offset, storage->stridesize);
+-	dev_info(storage->dev, "Using bucket %d@0x%08llx\n", bucket_used->num, (long long) bucket_used->offset);
++	dev_info(storage->dev, "Using bucket %d@0x%08llxc, stridesize value 0x%x\n", bucket_used->num, (long long) bucket_used->offset, storage->stridesize);
  
  	/*
  	 * Restore/refresh all buckets except the one we currently use (in case
-@@ -309,7 +376,6 @@ static int state_storage_file_buckets_init(struct state_backend_storage *storage
- 	int n_buckets = 0;
- 	uint32_t stridesize = storage->stridesize;
- 	size_t max_size = storage->max_size;
--
- 	if (!stridesize) {
- 		dev_err(storage->dev, "stridesize unspecified\n");
- 		return -EINVAL;
-@@ -319,7 +385,6 @@ static int state_storage_file_buckets_init(struct state_backend_storage *storage
- 		dev_err(storage->dev, "device is too small to hold %d copies\n", desired_buckets);
- 		return -EINVAL;
- 	}
--
- 	for (n = 0; n < desired_buckets; n++) {
- 		offset = storage->offset + n * stridesize;
- 		ret = state_backend_bucket_direct_create(storage->dev, storage->path,
 diff --git a/common/state/state.c b/common/state/state.c
-index 54c57232e..0f16f37b6 100644
+index 8c34ae83e5..78faefd94a 100644
 --- a/common/state/state.c
 +++ b/common/state/state.c
-@@ -357,7 +357,16 @@ struct device_node *state_to_node(struct state *state,
+@@ -355,7 +355,16 @@ struct device_node *state_to_node(struct state *state,
  		goto out;
  
  	for_each_child_of_node(state_root, child) {
@@ -204,10 +193,10 @@ index 54c57232e..0f16f37b6 100644
  			goto out;
  	}
 diff --git a/common/state/state.h b/common/state/state.h
-index 3a0662fd2..8ba962611 100644
+index 0545cf6ac1..329403beda 100644
 --- a/common/state/state.h
 +++ b/common/state/state.h
-@@ -36,6 +36,8 @@ struct state_backend_storage_bucket {
+@@ -39,6 +39,8 @@ struct state_backend_storage_bucket {
  		      const void * buf, ssize_t len);
  	int (*read) (struct state_backend_storage_bucket * bucket,
  		     void ** buf, ssize_t * len_hint);

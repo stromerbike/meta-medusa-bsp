@@ -9,6 +9,7 @@
 
 /dts-v1/;
 #include "imx6ull.dtsi"
+#include <dt-bindings/leds/common.h>
 
 / {
 	model = "Phytec phyCORE i.MX6 UltraLite Low Cost";
@@ -85,7 +86,7 @@
 		compatible = "pwm-backlight";
 		/* PWM period is vriten in nanoseconds
 		   10KHz is 100.000 nanoseconds */
-		pwms = <&pwm5 0 100000>;
+		pwms = <&pwm5 0 100000 0>;
 		/* Brightnes is equal to PWM duty cycle */
 		brightness-levels = < 0  1  2  3  4  5  6  7  8  9
 							 10 11 12 13 14 15 16 17 18 19
@@ -105,7 +106,7 @@
 
 	/* Frontbase */
 	frontbase: frontbase {
-		pwms = <&pwm6 0 5000000>;
+		pwms = <&pwm6 0 5000000 0>;
 		pwm-names = "frontbase";
 		status = "okay";
 	};
@@ -204,21 +205,8 @@
 	status = "okay";
 
 	/* Touch controller */
-	ili2116@41 {
-		compatible = "stromer-ili2116";
-		reg = <0x41>;
-		pinctrl-names = "default";
-		pinctrl-0 = <&pinctrl_ili2116>;
-		interrupt-parent = <&gpio1>;
-		interrupts = <30 IRQ_TYPE_EDGE_FALLING>;
-		pendown-gpio = <&gpio1 30 GPIO_ACTIVE_HIGH>;
-		wakeup-source;
-		status = "disabled";
-	};
-
-	/* Touch controller */
 	st1633@55 {
-		compatible = "stromer-st1633";
+		compatible = "sitronix,st1633";
 		reg = <0x55>;
 		pinctrl-names = "default";
 		pinctrl-0 = <&pinctrl_st1633>;
@@ -232,14 +220,22 @@
 	/* EEPROM memory address */
 	eeprom: eeprom@52 {
 		compatible = "cat,24c32";
+		vcc-supply = <&reg_3p0>;
 		reg = <0x52>;
 	};
 
 	/* EEPROM ID page address */
 	eeprom@5a {
 		compatible = "cat,24c32";
+		vcc-supply = <&reg_3p0>;
 		reg = <0x5a>;
 	};
+};
+
+/* SOM VDD_3V3 */
+&reg_3p0 {
+	regulator-min-microvolt = <3000000>;
+	regulator-always-on;
 };
 
 /* Sensors */
@@ -256,44 +252,64 @@
 	};
 
 	leds@35 {
+		#address-cells = <1>;
+		#size-cells = <0>;
 		compatible = "national,lp5523";
 		reg = <0x35>;
-		clock-mode = /bits/ 8 <1>;
+		clock-mode = /bits/ 8 <1>; /* LP55XX_CLOCK_INT */
 
-		chan0 {
-			  chan-name = "rgb1_red";
-			  led-cur = /bits/ 8 <0x14>;
-			  max-cur = /bits/ 8 <0x96>;
+		led@0 {
+			reg = <0>;
+			chan-name = "rgb1_red";
+			led-cur = /bits/ 8 <0x14>;
+			max-cur = /bits/ 8 <0x96>;
+			color = <LED_COLOR_ID_RED>;
+			function = LED_FUNCTION_STATUS;
 		};
 
-		chan1 {
-			  chan-name = "rgb1_green";
-			  led-cur = /bits/ 8 <0x14>;
-			  max-cur = /bits/ 8 <0x64>;
+		led@1 {
+			reg = <1>;
+			chan-name = "rgb1_green";
+			led-cur = /bits/ 8 <0x14>;
+			max-cur = /bits/ 8 <0x64>;
+			color = <LED_COLOR_ID_GREEN>;
+			function = LED_FUNCTION_STATUS;
 		};
 
-		chan2 {
-			  chan-name = "rgb1_blue";
-			  led-cur = /bits/ 8 <0x14>;
-			  max-cur = /bits/ 8 <0x64>;
+		led@2 {
+			reg = <2>;
+			chan-name = "rgb1_blue";
+			led-cur = /bits/ 8 <0x14>;
+			max-cur = /bits/ 8 <0x64>;
+			color = <LED_COLOR_ID_BLUE>;
+			function = LED_FUNCTION_STATUS;
 		};
 
-		chan3 {
-			  chan-name = "rgb2_red";
-			  led-cur = /bits/ 8 <0x14>;
-			  max-cur = /bits/ 8 <0x96>;
+		led@3 {
+			reg = <3>;
+			chan-name = "rgb2_red";
+			led-cur = /bits/ 8 <0x14>;
+			max-cur = /bits/ 8 <0x96>;
+			color = <LED_COLOR_ID_RED>;
+			function = LED_FUNCTION_STATUS;
 		};
 
-		chan4 {
-			  chan-name = "rgb2_green";
-			  led-cur = /bits/ 8 <0x14>;
-			  max-cur = /bits/ 8 <0x64>;
+		led@4 {
+			reg = <4>;
+			chan-name = "rgb2_green";
+			led-cur = /bits/ 8 <0x14>;
+			max-cur = /bits/ 8 <0x64>;
+			color = <LED_COLOR_ID_GREEN>;
+			function = LED_FUNCTION_STATUS;
 		};
 
-		chan5 {
-			  chan-name = "rgb2_blue";
-			  led-cur = /bits/ 8 <0x14>;
-			  max-cur = /bits/ 8 <0x64>;
+		led@5 {
+			reg = <5>;
+			chan-name = "rgb2_blue";
+			led-cur = /bits/ 8 <0x14>;
+			max-cur = /bits/ 8 <0x64>;
+			color = <LED_COLOR_ID_BLUE>;
+			function = LED_FUNCTION_STATUS;
 		};
 	};
 };
@@ -330,6 +346,7 @@
 		#gpio-cells = <2>;
 		reg = <0x20>;
 		interrupt-parent = <&gpio1>;
+		/* prevents loop with high load on unexpected disconnects */
 		interrupts = <0 IRQ_TYPE_EDGE_FALLING>;
 	};
 };
@@ -394,6 +411,7 @@
 	/* Only USB OTG ID pin is configured,
 	   all other pins are preconfigured for USB */
 	dr_mode = "otg";
+    disable-over-current;
 	vbus-supply = <&reg_5v>;
 	status = "okay";
 };
@@ -597,13 +615,6 @@
 	};
 
 	/* Touch and SOM EEPROM */
-	pinctrl_ili2116: ili2116grp {
-		/* Touch interrupt and reset */
-		fsl,pins = <
-			MX6UL_PAD_UART5_TX_DATA__GPIO1_IO30	0x10000
-		>;
-	};
-
 	pinctrl_st1633: st1633grp {
 		/* Touch interrupt and reset */
 			fsl,pins = <
