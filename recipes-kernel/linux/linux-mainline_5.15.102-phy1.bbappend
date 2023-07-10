@@ -12,7 +12,6 @@ SRC_URI += " file://defconfig"
 SRC_URI += " file://imx6ul-medusa.dts"
 SRC_URI += " file://imx6ull-medusa.dts"
 SRC_URI += " file://clk_fix.patch"
-# TODO: use mainline display driver if possible https://github.com/torvalds/linux/commit/f225f1393f034e17281274180626086276da766c
 SRC_URI += " file://st7789v.patch"
 SRC_URI += " file://bootlogo.patch"
 SRC_URI += " file://ext_gpio.patch"

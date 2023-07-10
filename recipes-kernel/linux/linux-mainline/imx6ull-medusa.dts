@@ -360,38 +360,34 @@
 	dmas = <&sdma 3 7 1>, <&sdma 4 7 2>;
 	dma-names = "rx", "tx";
 	status = "okay";
+
+	panel@0 {
+		compatible = "sitronix,st7789v";
+		reg = <0>;
+		backlight = <&background>;
+		power-supply = <&reg_lcd_3v3>;
+		reset-gpios = <&gpio3 4 GPIO_ACTIVE_LOW>;
+		spi-max-frequency = <200000>;
+		spi-cpol;
+		spi-cpha;
+
+		port {
+			panel_in: endpoint {
+				remote-endpoint = <&display_out>;
+			};
+		};
+	};
 };
 
 &lcdif {
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_lcdif_dat>;
 	lcd-supply = <&reg_lcd_3v3>;
-	display = <&display>;
 	status = "okay";
 
-	display: display@di0 {
-		bits-per-pixel = <16>;
-		bus-width = <16>;
-		status = "okay";
-
-		display-timings {
-			native-mode = <&timing0>;
-
-			timing0: ST7789OMNI {
-				clock-frequency = <8000000>;
-				hactive = <240>;
-				vactive = <320>;
-				hback-porch = <10>;
-				hsync-len = <10>;
-				hfront-porch = <38>;
-				vback-porch = <4>;
-				vsync-len = <4>;
-				vfront-porch = <8>;
-				hsync-active = <0>;
-				vsync-active = <0>;
-				de-active = <1>;
-				pixelclk-active = <1>;
-			};
+	port {
+		display_out: endpoint {
+			remote-endpoint = <&panel_in>;
 		};
 	};
 };
