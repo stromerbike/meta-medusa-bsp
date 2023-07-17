@@ -20,6 +20,9 @@ SRC_URI += " file://gsm_uart.patch"
 # required for barebox 2016.11.0
 SRC_URI += " file://0001-Revert-gpmi-node-address-and-name9b4941a7-17580888.patch"
 
+# show boot logo even if quiet is used as kernel command line parameter
+SRC_URI += " file://0001-fbcon-show-logo-even-if-loglevel-is-quiet.patch"
+
 # Disable autoboot for specified modules
 # led driver (EN pin connected to IO expander and thus module loading handled manually at boot)
 KERNEL_MODULE_PROBECONF += " leds-lp5523"
