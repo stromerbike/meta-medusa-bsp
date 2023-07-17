@@ -1,0 +1,30 @@
+From a2486611665b0f0985767ce264a751f1773c40fc Mon Sep 17 00:00:00 2001
+From: Stefan Eichenberger <eichest@gmail.com>
+Date: Mon, 17 Jul 2023 11:31:53 +0200
+Subject: [PATCH] fbcon: show logo even if loglevel is <= quiet
+
+Commit 10993504d647 ("fbcon: Silence fbcon logo on 'quiet' boots") will
+make the kernel not show the logo when the command line parameter quiet
+is used. This commit reverts it because this is what barebox does on the
+medusa hardware.
+---
+ drivers/video/fbdev/core/fbcon.c | 3 ---
+ 1 file changed, 3 deletions(-)
+
+diff --git a/drivers/video/fbdev/core/fbcon.c b/drivers/video/fbdev/core/fbcon.c
+index b6712655ec1f..df311dd38644 100644
+--- a/drivers/video/fbdev/core/fbcon.c
++++ b/drivers/video/fbdev/core/fbcon.c
+@@ -1035,9 +1035,6 @@ static void fbcon_init(struct vc_data *vc, int init)
+ 
+ 	info = registered_fb[con2fb_map[vc->vc_num]];
+ 
+-	if (logo_shown < 0 && console_loglevel <= CONSOLE_LOGLEVEL_QUIET)
+-		logo_shown = FBCON_LOGO_DONTSHOW;
+-
+ 	if (vc != svc || logo_shown == FBCON_LOGO_DONTSHOW ||
+ 	    (info->fix.type == FB_TYPE_TEXT))
+ 		logo = 0;
+-- 
+2.39.2
+
