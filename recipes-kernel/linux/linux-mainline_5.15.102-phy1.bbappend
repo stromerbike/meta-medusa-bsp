@@ -23,13 +23,6 @@ SRC_URI += " file://0001-Revert-gpmi-node-address-and-name9b4941a7-17580888.patc
 # show boot logo even if quiet is used as kernel command line parameter
 SRC_URI += " file://0001-fbcon-show-logo-even-if-loglevel-is-quiet.patch"
 
-# Disable autoboot for specified modules
-# led driver (EN pin connected to IO expander and thus module loading handled manually at boot)
-KERNEL_MODULE_PROBECONF += " leds-lp5523"
-module_conf_leds-lp5523 = "blacklist leds-lp5523"
-KERNEL_MODULE_PROBECONF += " leds-lp55xx-common"
-module_conf_leds-lp55xx-common = "blacklist leds-lp55xx-common"
-
 # iio drivers utilized by adc and accelerometer
 KERNEL_MODULE_PROBECONF += " kfifo_buf"
 module_conf_kfifo_buf = "blacklist kfifo_buf"
