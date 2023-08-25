@@ -9,12 +9,10 @@
 
 /dts-v1/;
 #include "imx6ull.dtsi"
+#include "imx6ull-phytec-phycore-som.dtsi"
 #include <dt-bindings/leds/common.h>
 
 / {
-	model = "Phytec phyCORE i.MX6 UltraLite Low Cost";
-	compatible = "fsl,imx6ull";
-
 	/* Set the minimum memory size here and
 	   let the bootloader set the real size */
 	memory {
@@ -50,6 +48,8 @@
 			regulator-name = "can-3v3";
 			regulator-min-microvolt = <3300000>;
 			regulator-max-microvolt = <3300000>;
+			/* Take CAN out of reset */
+			gpio = <&gpio5 9 GPIO_ACTIVE_LOW>;
 			status = "okay";
 		};
 
@@ -111,26 +111,11 @@
 		status = "okay";
 	};
 
-	/* Blinking led */
-	gpio_leds_som: somleds {
-		pinctrl-names = "default";
-		pinctrl-0 = <&pinctrl_gpioleds_som>;
-		compatible = "gpio-leds";
-		status = "okay";
-
-		som_green {
-			label = "phycore:green";
-			gpios = <&gpio5 4 GPIO_ACTIVE_HIGH>;
-			linux,default-trigger = "heartbeat";
-		};
-	};
-
 	/* Power lock pin */
 	gpio-poweroff {
 		compatible = "gpio-poweroff";
 		gpios = <&gpio5 1 GPIO_ACTIVE_LOW>;
 	};
-
 
 	/* On Switch (On/Menu) */
 	gpio-keys {
@@ -147,18 +132,13 @@
 	};
 };
 
-/* NAND */
-&gpmi {
-	pinctrl-names = "default";
-	pinctrl-0 = <&pinctrl_gpmi_nand>;
-	nand-on-flash-bbt;
-	status = "okay";
+/* We use the poweroff gpio instead */
+&snvs_poweroff {
+	status = "disabled";
 };
 
-/* Debug port */
-&uart1 {
-	pinctrl-names = "default";
-	pinctrl-0 = <&pinctrl_uart1>;
+/* NAND */
+&gpmi {
 	status = "okay";
 };
 
@@ -199,9 +179,6 @@
 
 /* Touch and SOM EEPROM */
 &i2c1 {
-	pinctrl-names = "default";
-	pinctrl-0 = <&pinctrl_i2c1>;
-	clock-frequency = <100000>;
 	status = "okay";
 
 	/* Touch controller */
@@ -217,25 +194,12 @@
 		status = "okay";
 	};
 
-	/* EEPROM memory address */
-	eeprom: eeprom@52 {
-		compatible = "cat,24c32";
-		vcc-supply = <&reg_3p0>;
-		reg = <0x52>;
-	};
-
 	/* EEPROM ID page address */
 	eeprom@5a {
 		compatible = "cat,24c32";
 		vcc-supply = <&reg_3p0>;
 		reg = <0x5a>;
 	};
-};
-
-/* SOM VDD_3V3 */
-&reg_3p0 {
-	regulator-min-microvolt = <3000000>;
-	regulator-always-on;
 };
 
 /* Sensors */
@@ -257,6 +221,7 @@
 		compatible = "national,lp5523";
 		reg = <0x35>;
 		clock-mode = /bits/ 8 <1>; /* LP55XX_CLOCK_INT */
+		enable-gpio = <&gpioexp1 4 GPIO_ACTIVE_HIGH>;
 
 		led@0 {
 			reg = <0>;
@@ -322,12 +287,15 @@
 	status = "okay";
 
 	/* TCA6416A GPIO Expander */
-	gpio@20 {
+	gpioexp1: gpio@20 {
 		compatible = "ti,tca6416";
 		vcc-supply = <&reg_exp_3v3>;
 		gpio-controller;
 		#gpio-cells = <2>;
 		reg = <0x20>;
+		gpio-line-names = "", "3V7_ON", "5V_OUT", "BLE_nON", "", "", "", "",
+				  "ILIM_SEL", "", "CTL2", "", "AmuxSelect2", "AmuxSelect1", "AmuxSelect0", "";
+
 	};
 };
 
@@ -339,7 +307,7 @@
 	status = "okay";
 
 	/* TCA6416A GPIO Expander */
-	gpio@20 {
+	gpioexp2: gpio@20 {
 		compatible = "ti,tca6416ext";
 		vcc-supply = <&reg_5v>;
 		gpio-controller;
@@ -407,7 +375,7 @@
 	/* Only USB OTG ID pin is configured,
 	   all other pins are preconfigured for USB */
 	dr_mode = "otg";
-    disable-over-current;
+	disable-over-current;
 	vbus-supply = <&reg_5v>;
 	status = "okay";
 };
@@ -419,28 +387,6 @@
 	disable-over-current;
 	vbus-supply = <&reg_5v>;
 	status = "okay";
-};
-
-/* Ethernet */
-&fec1 {
-	pinctrl-names = "default";
-	pinctrl-0 = <&pinctrl_enet1>;
-	phy-mode = "rmii";
-	phy-handle = <&ethphy0>;
-	status = "disabled";
-
-	mdio: mdio {
-		#address-cells = <1>;
-		#size-cells = <0>;
-
-		ethphy0: ethernet-phy@1 {
-			reg = <1>;
-			interrupt-parent = <&gpio1>;               /* SOM 1468.1 or newer */
-			interrupts = <2 IRQ_TYPE_LEVEL_LOW>;       /* SOM 1468.1 or newer */
-			/* interrupt-parent = <&gpio5>; */         /* SOM 1468.0 only */
-			/* interrupts = <5 IRQ_TYPE_LEVEL_LOW>; */ /* SOM 1468.0 only */
-		};
-	};
 };
 
 /* LCD background */
@@ -466,6 +412,35 @@
 	status = "okay";
 };
 
+&gpio1 {
+	gpio-line-names = "Cadence", "Horn", "", "BreakL", "BreakR", "AN_mux", "", "",
+			  "", "TMM", "", "", "", "", "", "",
+			  "", "", "MPIO1_DIR", "MPIO2_DIR", "", "", "", "FORCE_OTG1_ID",
+			  "", "", "", "", "", "", "", "";
+};
+
+
+&gpio2 {
+	gpio-line-names = "", "", "", "", "", "", "", "",
+			  "", "", "GearshiftTrigger1", "GearshiftTrigger2", "", "", "", "",
+			  "MPIO1", "BreakPU", "", "I2C4_PU", "", "", "", "",
+			  "", "", "", "", "", "", "", "";
+};
+
+&gpio4 {
+	gpio-line-names = "", "", "", "", "", "", "", "",
+			  "", "", "", "", "", "", "", "",
+			  "MPIO2", "", "I2C4_ON", "", "", "", "InertialSensorInt1", "InertialSensorInt1",
+			  "BLE_nSHUTD", "GNSS_PPS", "GNSS_FORCE_ON", "ResBlock", "GNSS_RESET", "", "", "";
+};
+
+&gpio5 {
+	gpio-line-names = "GSM_RESET", "", "", "HornPU", "", "GSM_ON_N", "", "",
+			  "", "CAN_SILENT", "", "", "", "", "", "",
+			  "", "", "", "", "", "", "", "",
+			  "", "", "", "", "", "", "", "";
+};
+
 &iomuxc_snvs {
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_tamper_gpios>;
@@ -484,11 +459,6 @@
 		fsl,pins = <
 			MX6ULL_PAD_SNVS_TAMPER2__GPIO5_IO02	0x79
 		>;
-	};
-
-	/* Heart beat led */
-	pinctrl_gpioleds_som: gpioledssomgrp {
-		fsl,pins = <MX6ULL_PAD_SNVS_TAMPER4__GPIO5_IO04	0x0b0b0>;
 	};
 };
 
@@ -525,34 +495,6 @@
 		 >;
 	};
 
-	/* NAND */
-	pinctrl_gpmi_nand: gpminandgrp {
-		fsl,pins = <
-			MX6UL_PAD_NAND_CLE__RAWNAND_CLE			0x0b0b1
-			MX6UL_PAD_NAND_ALE__RAWNAND_ALE			0x0b0b1
-			MX6UL_PAD_NAND_WP_B__RAWNAND_WP_B		0x0b0b1
-			MX6UL_PAD_NAND_READY_B__RAWNAND_READY_B	0x0b000
-			MX6UL_PAD_NAND_CE0_B__RAWNAND_CE0_B		0x0b0b1
-			MX6UL_PAD_NAND_RE_B__RAWNAND_RE_B		0x0b0b1
-			MX6UL_PAD_NAND_WE_B__RAWNAND_WE_B		0x0b0b1
-			MX6UL_PAD_NAND_DATA00__RAWNAND_DATA00	0x0b0b1
-			MX6UL_PAD_NAND_DATA01__RAWNAND_DATA01	0x0b0b1
-			MX6UL_PAD_NAND_DATA02__RAWNAND_DATA02	0x0b0b1
-			MX6UL_PAD_NAND_DATA03__RAWNAND_DATA03	0x0b0b1
-			MX6UL_PAD_NAND_DATA04__RAWNAND_DATA04	0x0b0b1
-			MX6UL_PAD_NAND_DATA05__RAWNAND_DATA05	0x0b0b1
-			MX6UL_PAD_NAND_DATA06__RAWNAND_DATA06	0x0b0b1
-			MX6UL_PAD_NAND_DATA07__RAWNAND_DATA07	0x0b0b1
-		>;
-	};
-
-	/* Debug port */
-	pinctrl_uart1: uart1grp {
-		fsl,pins = <
-			MX6UL_PAD_UART1_TX_DATA__UART1_DCE_TX	0x1b0b1
-			MX6UL_PAD_UART1_RX_DATA__UART1_DCE_RX	0x1b0b1
-		>;
-	};
 
 	/* Button ring */
 	pinctrl_uart2: uart2grp {
@@ -599,29 +541,11 @@
 		>;
 	};
 
-	/* TLV320 ADC */
-	pinctrl_sai2: sai2grp {
-		fsl,pins = <
-			MX6UL_PAD_JTAG_TDI__SAI2_TX_BCLK	0x17088
-			MX6UL_PAD_JTAG_TDO__SAI2_TX_SYNC	0x17088
-			MX6UL_PAD_JTAG_TRST_B__SAI2_TX_DATA	0x11088
-			MX6UL_PAD_JTAG_TCK__SAI2_RX_DATA	0x11088
-			MX6UL_PAD_JTAG_TMS__SAI2_MCLK		0x17088
-		>;
-	};
-
 	/* Touch and SOM EEPROM */
 	pinctrl_st1633: st1633grp {
 		/* Touch interrupt and reset */
 			fsl,pins = <
 			MX6UL_PAD_UART5_TX_DATA__GPIO1_IO30	0x10000
-		>;
-	};
-
-	pinctrl_i2c1: i2c1grp {
-		fsl,pins = <
-			MX6UL_PAD_UART4_TX_DATA__I2C1_SCL	0x4001b8b0
-			MX6UL_PAD_UART4_RX_DATA__I2C1_SDA	0x4001b8b0
 		>;
 	};
 
@@ -672,24 +596,6 @@
 	pinctrl_usb_otg1_id: usbotg1idgrp {
 		fsl,pins = <
 			MX6UL_PAD_SD1_DATA0__ANATOP_OTG1_ID	0x17059
-		>;
-	};
-
-	/* Ethernet */
-	pinctrl_enet1: enet1grp {
-		fsl,pins = <
-			MX6UL_PAD_ENET1_TX_DATA0__ENET1_TDATA00	0x1b0b0
-			MX6UL_PAD_ENET1_TX_DATA1__ENET1_TDATA01	0x1b0b0
-			MX6UL_PAD_ENET1_TX_EN__ENET1_TX_EN		0x1b0b0
-			MX6UL_PAD_ENET1_TX_CLK__ENET1_REF_CLK1	0x4001b031
-			MX6UL_PAD_ENET1_RX_DATA0__ENET1_RDATA00	0x1b0b0
-			MX6UL_PAD_ENET1_RX_DATA1__ENET1_RDATA01	0x1b0b0
-			MX6UL_PAD_ENET1_RX_EN__ENET1_RX_EN		0x1b0b0
-			MX6UL_PAD_ENET1_RX_ER__ENET1_RX_ER		0x1b0b0
-			MX6UL_PAD_GPIO1_IO06__ENET1_MDIO		0x1b0b0
-			MX6UL_PAD_GPIO1_IO07__ENET1_MDC			0x1b0b0
-			MX6UL_PAD_GPIO1_IO02__GPIO1_IO02		0x1b0b0    /* SOM 1468.1 or newer: nENET_INT */
-			/* MX6UL_PAD_SNVS_TAMPER5__GPIO5_IO05	0x1b0b0 */ /* SOM 1468.0 only: nENET_INT */
 		>;
 	};
 
