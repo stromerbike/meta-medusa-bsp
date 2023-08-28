@@ -23,6 +23,9 @@ SRC_URI += " file://0001-Revert-gpmi-node-address-and-name9b4941a7-17580888.patc
 # show boot logo even if quiet is used as kernel command line parameter
 SRC_URI += " file://0001-fbcon-show-logo-even-if-loglevel-is-quiet.patch"
 
+# remove a warning message from the kernel log because the wrong function is called
+SRC_URI += " file://0001-leds-lp55xx-use-gpiod_set_value_cansleep.patch"
+
 # iio drivers utilized by adc and accelerometer
 KERNEL_MODULE_PROBECONF += " kfifo_buf"
 module_conf_kfifo_buf = "blacklist kfifo_buf"
