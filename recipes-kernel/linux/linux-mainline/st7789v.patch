@@ -1,4 +1,4 @@
-From 128cfe74f52b74ab08ad9833265a1d73827fbadf Mon Sep 17 00:00:00 2001
+From 9ccea35ec735e417cdad067ff8f971babc59d8c0 Mon Sep 17 00:00:00 2001
 From: Stefan Eichenberger <eichest@gmail.com>
 Date: Mon, 10 Jul 2023 13:44:21 +0200
 Subject: [PATCH] drm/panel: sitronix-st7789v: set correct mode for Stromer
@@ -10,12 +10,14 @@ PHSYNC and PVSYNC flags for the display mode, because this is what we
 configure.
 
 Signed-off-by: Stefan Eichenberger <eichest@gmail.com>
+
+%% original patch: st7789v.patch
 ---
- .../gpu/drm/panel/panel-sitronix-st7789v.c    | 74 ++++++++++---------
- 1 file changed, 38 insertions(+), 36 deletions(-)
+ .../gpu/drm/panel/panel-sitronix-st7789v.c    | 80 +++++++++----------
+ 1 file changed, 40 insertions(+), 40 deletions(-)
 
 diff --git a/drivers/gpu/drm/panel/panel-sitronix-st7789v.c b/drivers/gpu/drm/panel/panel-sitronix-st7789v.c
-index 61e565524542..2ddf8dc570fc 100644
+index 61e565524542..d6069359b941 100644
 --- a/drivers/gpu/drm/panel/panel-sitronix-st7789v.c
 +++ b/drivers/gpu/drm/panel/panel-sitronix-st7789v.c
 @@ -11,6 +11,7 @@
@@ -137,6 +139,20 @@ index 61e565524542..2ddf8dc570fc 100644
  
  	ST7789V_TEST(ret, st7789v_write_command(ctx, ST7789V_RAMCTRL_CMD));
  	ST7789V_TEST(ret, st7789v_write_data(ctx, ST7789V_RAMCTRL_DM_RGB |
+@@ -305,11 +307,9 @@ static int st7789v_prepare(struct drm_panel *panel)
+ 					     ST7789V_RAMCTRL_MAGIC));
+ 
+ 	ST7789V_TEST(ret, st7789v_write_command(ctx, ST7789V_RGBCTRL_CMD));
+-	ST7789V_TEST(ret, st7789v_write_data(ctx, ST7789V_RGBCTRL_WO |
+-					     ST7789V_RGBCTRL_RCM(2) |
++	ST7789V_TEST(ret, st7789v_write_data(ctx, ST7789V_RGBCTRL_RCM(2) |
+ 					     ST7789V_RGBCTRL_VSYNC_HIGH |
+-					     ST7789V_RGBCTRL_HSYNC_HIGH |
+-					     ST7789V_RGBCTRL_PCLK_HIGH));
++					     ST7789V_RGBCTRL_HSYNC_HIGH));
+ 	ST7789V_TEST(ret, st7789v_write_data(ctx, ST7789V_RGBCTRL_VBP(8)));
+ 	ST7789V_TEST(ret, st7789v_write_data(ctx, ST7789V_RGBCTRL_HBP(20)));
+ 
 -- 
 2.39.2
 
