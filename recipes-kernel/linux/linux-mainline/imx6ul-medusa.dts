@@ -188,6 +188,11 @@
 		status = "okay";
 	};
 
+	/* EEPROM (appending missing property) */
+	eeprom@52 {
+		vcc-supply = <&reg_3p0>;
+	};
+
 	/* EEPROM ID page address */
 	eeprom@5a {
 		compatible = "cat,24c32";
