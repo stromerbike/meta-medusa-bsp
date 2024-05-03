@@ -13,12 +13,6 @@
 #include <dt-bindings/leds/common.h>
 
 / {
-	/* Set the minimum memory size here and
-	   let the bootloader set the real size */
-	memory {
-		reg = <0x80000000 0x8000000>;
-	};
-
 	regulators {
 		compatible = "simple-bus";
 		#address-cells = <1>;
