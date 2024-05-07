@@ -138,6 +138,7 @@
 
 /* Button ring */
 &uart2 {
+	fsl,highprio;
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_uart2>;
 	status = "okay";

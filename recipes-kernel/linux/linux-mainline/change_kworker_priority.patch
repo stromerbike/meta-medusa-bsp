@@ -1,25 +1,98 @@
-From 9429d621bb2815160a5c42e0205921d4b977c7d0 Mon Sep 17 00:00:00 2001
-From: OpenEmbedded <oe.patch@oe>
-Date: Mon, 29 Apr 2024 14:18:26 +0000
-Subject: [PATCH] kernel: workqueue: set kworker to sched_fifo
-
-Make sure that the kworker threads are running with the SCHED_FIFO.
----
- kernel/workqueue.c | 1 +
- 1 file changed, 1 insertion(+)
-
+diff --git a/drivers/tty/serial/imx.c b/drivers/tty/serial/imx.c
+index 77a4f4af3b8d..3dc1d71eac11 100644
+--- a/drivers/tty/serial/imx.c
++++ b/drivers/tty/serial/imx.c
+@@ -237,6 +237,8 @@ struct imx_port {
+ 	enum imx_tx_state	tx_state;
+ 	struct hrtimer		trigger_start_tx;
+ 	struct hrtimer		trigger_stop_tx;
++
++	bool			highprio;
+ };
+ 
+ struct imx_port_ucrs {
+@@ -273,6 +275,18 @@ static const struct of_device_id imx_uart_dt_ids[] = {
+ };
+ MODULE_DEVICE_TABLE(of, imx_uart_dt_ids);
+ 
++static void imx_tty_flip_buffer_push(struct imx_port *sport)
++{
++	struct tty_port *port = &sport->port.state->port;
++	struct tty_bufhead *buf = &port->buf;
++
++	smp_store_release(&buf->tail->commit, buf->tail->used);
++	if (sport->highprio)
++		queue_work(system_highpri_wq, &buf->work);
++	else
++		queue_work(system_unbound_wq, &buf->work);
++}
++
+ static void imx_uart_writel(struct imx_port *sport, u32 val, u32 offset)
+ {
+ 	switch (offset) {
+@@ -856,7 +870,7 @@ static irqreturn_t __imx_uart_rxint(int irq, void *dev_id)
+ 	}
+ 
+ out:
+-	tty_flip_buffer_push(port);
++	imx_tty_flip_buffer_push(sport);
+ 
+ 	return IRQ_HANDLED;
+ }
+@@ -1192,7 +1206,7 @@ static void imx_uart_dma_rx_callback(void *data)
+ 	}
+ 
+ 	if (w_bytes) {
+-		tty_flip_buffer_push(port);
++		imx_tty_flip_buffer_push(sport);
+ 		dev_dbg(sport->port.dev, "We get %d bytes.\n", w_bytes);
+ 	}
+ }
+@@ -1248,7 +1262,7 @@ static void imx_uart_clear_rx_errors(struct imx_port *sport)
+ 		uart_handle_break(&sport->port);
+ 		if (tty_insert_flip_char(port, 0, TTY_BREAK) == 0)
+ 			sport->port.icount.buf_overrun++;
+-		tty_flip_buffer_push(port);
++		imx_tty_flip_buffer_push(sport);
+ 	} else {
+ 		if (usr1 & USR1_FRAMERR) {
+ 			sport->port.icount.frame++;
+@@ -2249,6 +2263,9 @@ static int imx_uart_probe(struct platform_device *pdev)
+ 	if (of_get_property(np, "fsl,inverted-rx", NULL))
+ 		sport->inverted_rx = 1;
+ 
++	if (of_property_read_bool(np, "fsl,highprio"))
++		sport->highprio = 1;
++
+ 	if (!of_property_read_u32_array(np, "fsl,dma-info", dma_buf_conf, 2)) {
+ 		sport->rx_period_length = dma_buf_conf[0];
+ 		sport->rx_periods = dma_buf_conf[1];
 diff --git a/kernel/workqueue.c b/kernel/workqueue.c
-index f5fa7be8d17e..ee6bc25ee083 100644
+index f5fa7be8d17e..bf53199a5aed 100644
 --- a/kernel/workqueue.c
 +++ b/kernel/workqueue.c
-@@ -1969,6 +1969,7 @@ static struct worker *create_worker(struct worker_pool *pool)
+@@ -25,6 +25,7 @@
+  * Please read Documentation/core-api/workqueue.rst for details.
+  */
+ 
++#include <uapi/linux/sched/types.h>
+ #include <linux/export.h>
+ #include <linux/kernel.h>
+ #include <linux/sched.h>
+@@ -1945,6 +1946,7 @@ static struct worker *create_worker(struct worker_pool *pool)
+ 	struct worker *worker;
+ 	int id;
+ 	char id_buf[16];
++	struct sched_param sp = { .sched_priority = 5 };
+ 
+ 	/* ID is needed to determine kthread name */
+ 	id = ida_alloc(&pool->worker_ida, GFP_KERNEL);
+@@ -1969,6 +1971,8 @@ static struct worker *create_worker(struct worker_pool *pool)
  		goto fail;
  
  	set_user_nice(worker->task, pool->attrs->nice);
-+	sched_set_fifo(worker->task);
++	if (pool->attrs->nice < 0)
++		sched_setscheduler_nocheck(worker->task, SCHED_RR, &sp);
  	kthread_bind_mask(worker->task, pool->attrs->cpumask);
  
  	/* successful, attach the worker to the pool */
--- 
-2.40.1
-
