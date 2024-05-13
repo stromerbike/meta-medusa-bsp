@@ -1,0 +1,73 @@
+diff --git a/drivers/gpio/gpiolib-sysfs.c b/drivers/gpio/gpiolib-sysfs.c
+index 50cf4ff522ad..ae0edd307d77 100644
+--- a/drivers/gpio/gpiolib-sysfs.c
++++ b/drivers/gpio/gpiolib-sysfs.c
+@@ -151,7 +151,7 @@ static irqreturn_t gpio_sysfs_irq(int irq, void *priv)
+ {
+ 	struct gpiod_data *data = priv;
+ 
+-	sysfs_notify_dirent(data->value_kn);
++	kernfs_notify_highpri(data->value_kn);
+ 
+ 	return IRQ_HANDLED;
+ }
+diff --git a/fs/kernfs/file.c b/fs/kernfs/file.c
+index 60e2a86c535e..617f9acbd736 100644
+--- a/fs/kernfs/file.c
++++ b/fs/kernfs/file.c
+@@ -940,6 +940,43 @@ void kernfs_notify(struct kernfs_node *kn)
+ }
+ EXPORT_SYMBOL_GPL(kernfs_notify);
+ 
++/**
++ * kernfs_notify_highpri - notify a kernfs file
++ * @kn: file to notify
++ *
++ * Notify @kn such that poll(2) on @kn wakes up.  Maybe be called from any
++ * context.
++ */
++void kernfs_notify_highpri(struct kernfs_node *kn)
++{
++	static DECLARE_WORK(kernfs_notify_work, kernfs_notify_workfn);
++	unsigned long flags;
++	struct kernfs_open_node *on;
++
++	if (WARN_ON(kernfs_type(kn) != KERNFS_FILE))
++		return;
++
++	/* kick poll immediately */
++	spin_lock_irqsave(&kernfs_open_node_lock, flags);
++	on = kn->attr.open;
++	if (on) {
++		atomic_inc(&on->event);
++		wake_up_interruptible(&on->poll);
++	}
++	spin_unlock_irqrestore(&kernfs_open_node_lock, flags);
++
++	/* schedule work to kick fsnotify */
++	spin_lock_irqsave(&kernfs_notify_lock, flags);
++	if (!kn->attr.notify_next) {
++		kernfs_get(kn);
++		kn->attr.notify_next = kernfs_notify_list;
++		kernfs_notify_list = kn;
++		queue_work(system_highpri_wq, &kernfs_notify_work);
++	}
++	spin_unlock_irqrestore(&kernfs_notify_lock, flags);
++}
++EXPORT_SYMBOL_GPL(kernfs_notify_highpri);
++
+ const struct file_operations kernfs_file_fops = {
+ 	.read_iter	= kernfs_fop_read_iter,
+ 	.write_iter	= kernfs_fop_write_iter,
+diff --git a/include/linux/kernfs.h b/include/linux/kernfs.h
+index 1093abf7c28c..0cf543f15752 100644
+--- a/include/linux/kernfs.h
++++ b/include/linux/kernfs.h
+@@ -400,6 +400,7 @@ int kernfs_setattr(struct kernfs_node *kn, const struct iattr *iattr);
+ __poll_t kernfs_generic_poll(struct kernfs_open_file *of,
+ 			     struct poll_table_struct *pt);
+ void kernfs_notify(struct kernfs_node *kn);
++void kernfs_notify_highpri(struct kernfs_node *kn);
+ 
+ int kernfs_xattr_get(struct kernfs_node *kn, const char *name,
+ 		     void *value, size_t size);

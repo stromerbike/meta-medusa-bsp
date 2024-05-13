@@ -17,6 +17,7 @@ SRC_URI += " file://bootlogo.patch"
 SRC_URI += " file://ext_gpio.patch"
 SRC_URI += " file://gsm_uart.patch"
 SRC_URI += " file://change_kworker_priority.patch"
+SRC_URI += " file://increase_gpio_irq_priority.patch"
 
 # required for barebox 2016.11.0
 SRC_URI += " file://0001-Revert-gpmi-node-address-and-name9b4941a7-17580888.patch"
