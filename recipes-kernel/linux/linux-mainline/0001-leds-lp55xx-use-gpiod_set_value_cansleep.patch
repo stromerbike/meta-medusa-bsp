@@ -1,0 +1,34 @@
+From d7d6f25b3b4ed7260c3fbf47d0a0d4481872c750 Mon Sep 17 00:00:00 2001
+From: Stefan Eichenberger <eichest@gmail.com>
+Date: Mon, 28 Aug 2023 14:31:47 +0200
+Subject: [PATCH] leds: lp55xx: use gpiod_set_value_cansleep
+
+Use gpiod_set_value_cansleep in the init_device function. Without this
+change, the driver may print a warning if the LP55xx enable pin is
+connected to a GPIO chip which can sleep (e.g. a GPIO expander):
+WARNING: CPU: 0 PID: 2719 at drivers/gpio/gpiolib.c:3051 gpiod_set_value+0x64/0xbc
+
+Signed-off-by: Stefan Eichenberger <eichest@gmail.com>
+---
+ drivers/leds/leds-lp55xx-common.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/leds/leds-lp55xx-common.c b/drivers/leds/leds-lp55xx-common.c
+index 9fdfc1b9a1a0..d52be1ba723e 100644
+--- a/drivers/leds/leds-lp55xx-common.c
++++ b/drivers/leds/leds-lp55xx-common.c
+@@ -442,9 +442,9 @@ int lp55xx_init_device(struct lp55xx_chip *chip)
+ 		gpiod_direction_output(pdata->enable_gpiod, 0);
+ 
+ 		gpiod_set_consumer_name(pdata->enable_gpiod, "LP55xx enable");
+-		gpiod_set_value(pdata->enable_gpiod, 0);
++		gpiod_set_value_cansleep(pdata->enable_gpiod, 0);
+ 		usleep_range(1000, 2000); /* Keep enable down at least 1ms */
+-		gpiod_set_value(pdata->enable_gpiod, 1);
++		gpiod_set_value_cansleep(pdata->enable_gpiod, 1);
+ 		usleep_range(1000, 2000); /* 500us abs min. */
+ 	}
+ 
+-- 
+2.39.2
+

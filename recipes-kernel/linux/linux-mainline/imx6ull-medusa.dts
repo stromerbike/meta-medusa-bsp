@@ -9,17 +9,10 @@
 
 /dts-v1/;
 #include "imx6ull.dtsi"
+#include "imx6ull-phytec-phycore-som.dtsi"
+#include <dt-bindings/leds/common.h>
 
 / {
-	model = "Phytec phyCORE i.MX6 UltraLite Low Cost";
-	compatible = "fsl,imx6ull";
-
-	/* Set the minimum memory size here and
-	   let the bootloader set the real size */
-	memory {
-		reg = <0x80000000 0x8000000>;
-	};
-
 	regulators {
 		compatible = "simple-bus";
 		#address-cells = <1>;
@@ -49,6 +42,8 @@
 			regulator-name = "can-3v3";
 			regulator-min-microvolt = <3300000>;
 			regulator-max-microvolt = <3300000>;
+			/* Take CAN out of reset */
+			gpio = <&gpio5 9 GPIO_ACTIVE_LOW>;
 			status = "okay";
 		};
 
@@ -85,7 +80,7 @@
 		compatible = "pwm-backlight";
 		/* PWM period is vriten in nanoseconds
 		   10KHz is 100.000 nanoseconds */
-		pwms = <&pwm5 0 100000>;
+		pwms = <&pwm5 0 100000 0>;
 		/* Brightnes is equal to PWM duty cycle */
 		brightness-levels = < 0  1  2  3  4  5  6  7  8  9
 							 10 11 12 13 14 15 16 17 18 19
@@ -105,23 +100,9 @@
 
 	/* Frontbase */
 	frontbase: frontbase {
-		pwms = <&pwm6 0 5000000>;
+		pwms = <&pwm6 0 5000000 0>;
 		pwm-names = "frontbase";
 		status = "okay";
-	};
-
-	/* Blinking led */
-	gpio_leds_som: somleds {
-		pinctrl-names = "default";
-		pinctrl-0 = <&pinctrl_gpioleds_som>;
-		compatible = "gpio-leds";
-		status = "okay";
-
-		som_green {
-			label = "phycore:green";
-			gpios = <&gpio5 4 GPIO_ACTIVE_HIGH>;
-			linux,default-trigger = "heartbeat";
-		};
 	};
 
 	/* Power lock pin */
@@ -129,7 +110,6 @@
 		compatible = "gpio-poweroff";
 		gpios = <&gpio5 1 GPIO_ACTIVE_LOW>;
 	};
-
 
 	/* On Switch (On/Menu) */
 	gpio-keys {
@@ -146,23 +126,19 @@
 	};
 };
 
-/* NAND */
-&gpmi {
-	pinctrl-names = "default";
-	pinctrl-0 = <&pinctrl_gpmi_nand>;
-	nand-on-flash-bbt;
-	status = "okay";
+/* We use the poweroff gpio instead */
+&snvs_poweroff {
+	status = "disabled";
 };
 
-/* Debug port */
-&uart1 {
-	pinctrl-names = "default";
-	pinctrl-0 = <&pinctrl_uart1>;
+/* NAND */
+&gpmi {
 	status = "okay";
 };
 
 /* Button ring */
 &uart2 {
+	fsl,highprio;
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_uart2>;
 	status = "okay";
@@ -198,27 +174,11 @@
 
 /* Touch and SOM EEPROM */
 &i2c1 {
-	pinctrl-names = "default";
-	pinctrl-0 = <&pinctrl_i2c1>;
-	clock-frequency = <100000>;
 	status = "okay";
 
 	/* Touch controller */
-	ili2116@41 {
-		compatible = "stromer-ili2116";
-		reg = <0x41>;
-		pinctrl-names = "default";
-		pinctrl-0 = <&pinctrl_ili2116>;
-		interrupt-parent = <&gpio1>;
-		interrupts = <30 IRQ_TYPE_EDGE_FALLING>;
-		pendown-gpio = <&gpio1 30 GPIO_ACTIVE_HIGH>;
-		wakeup-source;
-		status = "disabled";
-	};
-
-	/* Touch controller */
 	st1633@55 {
-		compatible = "stromer-st1633";
+		compatible = "sitronix,st1633";
 		reg = <0x55>;
 		pinctrl-names = "default";
 		pinctrl-0 = <&pinctrl_st1633>;
@@ -229,15 +189,15 @@
 		status = "okay";
 	};
 
-	/* EEPROM memory address */
-	eeprom: eeprom@52 {
-		compatible = "cat,24c32";
-		reg = <0x52>;
+	/* EEPROM (appending missing property) */
+	eeprom@52 {
+		vcc-supply = <&reg_3p0>;
 	};
 
 	/* EEPROM ID page address */
 	eeprom@5a {
 		compatible = "cat,24c32";
+		vcc-supply = <&reg_3p0>;
 		reg = <0x5a>;
 	};
 };
@@ -256,44 +216,65 @@
 	};
 
 	leds@35 {
+		#address-cells = <1>;
+		#size-cells = <0>;
 		compatible = "national,lp5523";
 		reg = <0x35>;
-		clock-mode = /bits/ 8 <1>;
+		clock-mode = /bits/ 8 <1>; /* LP55XX_CLOCK_INT */
+		enable-gpio = <&gpioexp1 4 GPIO_ACTIVE_HIGH>;
 
-		chan0 {
-			  chan-name = "rgb1_red";
-			  led-cur = /bits/ 8 <0x14>;
-			  max-cur = /bits/ 8 <0x96>;
+		led@0 {
+			reg = <0>;
+			chan-name = "rgb1_red";
+			led-cur = /bits/ 8 <0x14>;
+			max-cur = /bits/ 8 <0x96>;
+			color = <LED_COLOR_ID_RED>;
+			function = LED_FUNCTION_STATUS;
 		};
 
-		chan1 {
-			  chan-name = "rgb1_green";
-			  led-cur = /bits/ 8 <0x14>;
-			  max-cur = /bits/ 8 <0x64>;
+		led@1 {
+			reg = <1>;
+			chan-name = "rgb1_green";
+			led-cur = /bits/ 8 <0x14>;
+			max-cur = /bits/ 8 <0x64>;
+			color = <LED_COLOR_ID_GREEN>;
+			function = LED_FUNCTION_STATUS;
 		};
 
-		chan2 {
-			  chan-name = "rgb1_blue";
-			  led-cur = /bits/ 8 <0x14>;
-			  max-cur = /bits/ 8 <0x64>;
+		led@2 {
+			reg = <2>;
+			chan-name = "rgb1_blue";
+			led-cur = /bits/ 8 <0x14>;
+			max-cur = /bits/ 8 <0x64>;
+			color = <LED_COLOR_ID_BLUE>;
+			function = LED_FUNCTION_STATUS;
 		};
 
-		chan3 {
-			  chan-name = "rgb2_red";
-			  led-cur = /bits/ 8 <0x14>;
-			  max-cur = /bits/ 8 <0x96>;
+		led@3 {
+			reg = <3>;
+			chan-name = "rgb2_red";
+			led-cur = /bits/ 8 <0x14>;
+			max-cur = /bits/ 8 <0x96>;
+			color = <LED_COLOR_ID_RED>;
+			function = LED_FUNCTION_STATUS;
 		};
 
-		chan4 {
-			  chan-name = "rgb2_green";
-			  led-cur = /bits/ 8 <0x14>;
-			  max-cur = /bits/ 8 <0x64>;
+		led@4 {
+			reg = <4>;
+			chan-name = "rgb2_green";
+			led-cur = /bits/ 8 <0x14>;
+			max-cur = /bits/ 8 <0x64>;
+			color = <LED_COLOR_ID_GREEN>;
+			function = LED_FUNCTION_STATUS;
 		};
 
-		chan5 {
-			  chan-name = "rgb2_blue";
-			  led-cur = /bits/ 8 <0x14>;
-			  max-cur = /bits/ 8 <0x64>;
+		led@5 {
+			reg = <5>;
+			chan-name = "rgb2_blue";
+			led-cur = /bits/ 8 <0x14>;
+			max-cur = /bits/ 8 <0x64>;
+			color = <LED_COLOR_ID_BLUE>;
+			function = LED_FUNCTION_STATUS;
 		};
 	};
 };
@@ -306,12 +287,15 @@
 	status = "okay";
 
 	/* TCA6416A GPIO Expander */
-	gpio@20 {
+	gpioexp1: gpio@20 {
 		compatible = "ti,tca6416";
 		vcc-supply = <&reg_exp_3v3>;
 		gpio-controller;
 		#gpio-cells = <2>;
 		reg = <0x20>;
+		gpio-line-names = "", "3V7_ON", "5V_OUT", "BLE_nON", "", "", "", "",
+				  "ILIM_SEL", "", "CTL2", "", "AmuxSelect2", "AmuxSelect1", "AmuxSelect0", "";
+
 	};
 };
 
@@ -323,13 +307,14 @@
 	status = "okay";
 
 	/* TCA6416A GPIO Expander */
-	gpio@20 {
+	gpioexp2: gpio@20 {
 		compatible = "ti,tca6416ext";
 		vcc-supply = <&reg_5v>;
 		gpio-controller;
 		#gpio-cells = <2>;
 		reg = <0x20>;
 		interrupt-parent = <&gpio1>;
+		/* prevents loop with high load on unexpected disconnects */
 		interrupts = <0 IRQ_TYPE_EDGE_FALLING>;
 	};
 };
@@ -343,38 +328,34 @@
 	dmas = <&sdma 3 7 1>, <&sdma 4 7 2>;
 	dma-names = "rx", "tx";
 	status = "okay";
+
+	panel@0 {
+		compatible = "sitronix,st7789v";
+		reg = <0>;
+		backlight = <&background>;
+		power-supply = <&reg_lcd_3v3>;
+		reset-gpios = <&gpio3 4 GPIO_ACTIVE_LOW>;
+		spi-max-frequency = <200000>;
+		spi-cpol;
+		spi-cpha;
+
+		port {
+			panel_in: endpoint {
+				remote-endpoint = <&display_out>;
+			};
+		};
+	};
 };
 
 &lcdif {
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_lcdif_dat>;
 	lcd-supply = <&reg_lcd_3v3>;
-	display = <&display>;
 	status = "okay";
 
-	display: display@di0 {
-		bits-per-pixel = <16>;
-		bus-width = <16>;
-		status = "okay";
-
-		display-timings {
-			native-mode = <&timing0>;
-
-			timing0: ST7789OMNI {
-				clock-frequency = <8000000>;
-				hactive = <240>;
-				vactive = <320>;
-				hback-porch = <10>;
-				hsync-len = <10>;
-				hfront-porch = <38>;
-				vback-porch = <4>;
-				vsync-len = <4>;
-				vfront-porch = <8>;
-				hsync-active = <0>;
-				vsync-active = <0>;
-				de-active = <1>;
-				pixelclk-active = <1>;
-			};
+	port {
+		display_out: endpoint {
+			remote-endpoint = <&panel_in>;
 		};
 	};
 };
@@ -394,6 +375,7 @@
 	/* Only USB OTG ID pin is configured,
 	   all other pins are preconfigured for USB */
 	dr_mode = "otg";
+	disable-over-current;
 	vbus-supply = <&reg_5v>;
 	status = "okay";
 };
@@ -405,28 +387,6 @@
 	disable-over-current;
 	vbus-supply = <&reg_5v>;
 	status = "okay";
-};
-
-/* Ethernet */
-&fec1 {
-	pinctrl-names = "default";
-	pinctrl-0 = <&pinctrl_enet1>;
-	phy-mode = "rmii";
-	phy-handle = <&ethphy0>;
-	status = "disabled";
-
-	mdio: mdio {
-		#address-cells = <1>;
-		#size-cells = <0>;
-
-		ethphy0: ethernet-phy@1 {
-			reg = <1>;
-			interrupt-parent = <&gpio1>;               /* SOM 1468.1 or newer */
-			interrupts = <2 IRQ_TYPE_LEVEL_LOW>;       /* SOM 1468.1 or newer */
-			/* interrupt-parent = <&gpio5>; */         /* SOM 1468.0 only */
-			/* interrupts = <5 IRQ_TYPE_LEVEL_LOW>; */ /* SOM 1468.0 only */
-		};
-	};
 };
 
 /* LCD background */
@@ -452,6 +412,35 @@
 	status = "okay";
 };
 
+&gpio1 {
+	gpio-line-names = "Cadence", "Horn", "", "BreakL", "BreakR", "AN_mux", "", "",
+			  "", "TMM", "", "", "", "", "", "",
+			  "", "", "MPIO1_DIR", "MPIO2_DIR", "", "", "", "FORCE_OTG1_ID",
+			  "", "", "", "", "", "", "", "";
+};
+
+
+&gpio2 {
+	gpio-line-names = "", "", "", "", "", "", "", "",
+			  "", "", "GearshiftTrigger1", "GearshiftTrigger2", "", "", "", "",
+			  "MPIO1", "BreakPU", "", "I2C4_PU", "", "", "", "",
+			  "", "", "", "", "", "", "", "";
+};
+
+&gpio4 {
+	gpio-line-names = "", "", "", "", "", "", "", "",
+			  "", "", "", "", "", "", "", "",
+			  "MPIO2", "", "I2C4_ON", "", "", "", "InertialSensorInt1", "InertialSensorInt1",
+			  "BLE_nSHUTD", "GNSS_PPS", "GNSS_FORCE_ON", "ResBlock", "GNSS_RESET", "", "", "";
+};
+
+&gpio5 {
+	gpio-line-names = "GSM_RESET", "", "", "HornPU", "", "GSM_ON_N", "", "",
+			  "", "CAN_SILENT", "", "", "", "", "", "",
+			  "", "", "", "", "", "", "", "",
+			  "", "", "", "", "", "", "", "";
+};
+
 &iomuxc_snvs {
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_tamper_gpios>;
@@ -470,11 +459,6 @@
 		fsl,pins = <
 			MX6ULL_PAD_SNVS_TAMPER2__GPIO5_IO02	0x79
 		>;
-	};
-
-	/* Heart beat led */
-	pinctrl_gpioleds_som: gpioledssomgrp {
-		fsl,pins = <MX6ULL_PAD_SNVS_TAMPER4__GPIO5_IO04	0x0b0b0>;
 	};
 };
 
@@ -507,38 +491,11 @@
 			MX6UL_PAD_UART2_RTS_B__GPIO1_IO23     0x79    /* FORCE_OTG1_ID */
 			MX6UL_PAD_SD1_DATA1__GPIO2_IO19       0x79    /* I2C4_PU */
 			MX6UL_PAD_CSI_PIXCLK__GPIO4_IO18      0x79    /* I2C4_ON */
-			MX6UL_PAD_CSI_DATA02__GPIO4_IO23      0x79    /* TMMADC_RESET_N */
+			MX6UL_PAD_CSI_DATA01__GPIO4_IO22      0x1b0b1 /* GYRO_INT */
+			MX6UL_PAD_CSI_DATA02__GPIO4_IO23      0x1b0b1 /* ACCEL_INT */
 		 >;
 	};
 
-	/* NAND */
-	pinctrl_gpmi_nand: gpminandgrp {
-		fsl,pins = <
-			MX6UL_PAD_NAND_CLE__RAWNAND_CLE			0x0b0b1
-			MX6UL_PAD_NAND_ALE__RAWNAND_ALE			0x0b0b1
-			MX6UL_PAD_NAND_WP_B__RAWNAND_WP_B		0x0b0b1
-			MX6UL_PAD_NAND_READY_B__RAWNAND_READY_B	0x0b000
-			MX6UL_PAD_NAND_CE0_B__RAWNAND_CE0_B		0x0b0b1
-			MX6UL_PAD_NAND_RE_B__RAWNAND_RE_B		0x0b0b1
-			MX6UL_PAD_NAND_WE_B__RAWNAND_WE_B		0x0b0b1
-			MX6UL_PAD_NAND_DATA00__RAWNAND_DATA00	0x0b0b1
-			MX6UL_PAD_NAND_DATA01__RAWNAND_DATA01	0x0b0b1
-			MX6UL_PAD_NAND_DATA02__RAWNAND_DATA02	0x0b0b1
-			MX6UL_PAD_NAND_DATA03__RAWNAND_DATA03	0x0b0b1
-			MX6UL_PAD_NAND_DATA04__RAWNAND_DATA04	0x0b0b1
-			MX6UL_PAD_NAND_DATA05__RAWNAND_DATA05	0x0b0b1
-			MX6UL_PAD_NAND_DATA06__RAWNAND_DATA06	0x0b0b1
-			MX6UL_PAD_NAND_DATA07__RAWNAND_DATA07	0x0b0b1
-		>;
-	};
-
-	/* Debug port */
-	pinctrl_uart1: uart1grp {
-		fsl,pins = <
-			MX6UL_PAD_UART1_TX_DATA__UART1_DCE_TX	0x1b0b1
-			MX6UL_PAD_UART1_RX_DATA__UART1_DCE_RX	0x1b0b1
-		>;
-	};
 
 	/* Button ring */
 	pinctrl_uart2: uart2grp {
@@ -585,36 +542,11 @@
 		>;
 	};
 
-	/* TLV320 ADC */
-	pinctrl_sai2: sai2grp {
-		fsl,pins = <
-			MX6UL_PAD_JTAG_TDI__SAI2_TX_BCLK	0x17088
-			MX6UL_PAD_JTAG_TDO__SAI2_TX_SYNC	0x17088
-			MX6UL_PAD_JTAG_TRST_B__SAI2_TX_DATA	0x11088
-			MX6UL_PAD_JTAG_TCK__SAI2_RX_DATA	0x11088
-			MX6UL_PAD_JTAG_TMS__SAI2_MCLK		0x17088
-		>;
-	};
-
 	/* Touch and SOM EEPROM */
-	pinctrl_ili2116: ili2116grp {
-		/* Touch interrupt and reset */
-		fsl,pins = <
-			MX6UL_PAD_UART5_TX_DATA__GPIO1_IO30	0x10000
-		>;
-	};
-
 	pinctrl_st1633: st1633grp {
 		/* Touch interrupt and reset */
 			fsl,pins = <
 			MX6UL_PAD_UART5_TX_DATA__GPIO1_IO30	0x10000
-		>;
-	};
-
-	pinctrl_i2c1: i2c1grp {
-		fsl,pins = <
-			MX6UL_PAD_UART4_TX_DATA__I2C1_SCL	0x4001b8b0
-			MX6UL_PAD_UART4_RX_DATA__I2C1_SDA	0x4001b8b0
 		>;
 	};
 
@@ -665,24 +597,6 @@
 	pinctrl_usb_otg1_id: usbotg1idgrp {
 		fsl,pins = <
 			MX6UL_PAD_SD1_DATA0__ANATOP_OTG1_ID	0x17059
-		>;
-	};
-
-	/* Ethernet */
-	pinctrl_enet1: enet1grp {
-		fsl,pins = <
-			MX6UL_PAD_ENET1_TX_DATA0__ENET1_TDATA00	0x1b0b0
-			MX6UL_PAD_ENET1_TX_DATA1__ENET1_TDATA01	0x1b0b0
-			MX6UL_PAD_ENET1_TX_EN__ENET1_TX_EN		0x1b0b0
-			MX6UL_PAD_ENET1_TX_CLK__ENET1_REF_CLK1	0x4001b031
-			MX6UL_PAD_ENET1_RX_DATA0__ENET1_RDATA00	0x1b0b0
-			MX6UL_PAD_ENET1_RX_DATA1__ENET1_RDATA01	0x1b0b0
-			MX6UL_PAD_ENET1_RX_EN__ENET1_RX_EN		0x1b0b0
-			MX6UL_PAD_ENET1_RX_ER__ENET1_RX_ER		0x1b0b0
-			MX6UL_PAD_GPIO1_IO06__ENET1_MDIO		0x1b0b0
-			MX6UL_PAD_GPIO1_IO07__ENET1_MDC			0x1b0b0
-			MX6UL_PAD_GPIO1_IO02__GPIO1_IO02		0x1b0b0    /* SOM 1468.1 or newer: nENET_INT */
-			/* MX6UL_PAD_SNVS_TAMPER5__GPIO5_IO05	0x1b0b0 */ /* SOM 1468.0 only: nENET_INT */
 		>;
 	};
 

@@ -1,25 +1,26 @@
 diff --git a/arch/arm/mach-imx/mach-imx6ul.c b/arch/arm/mach-imx/mach-imx6ul.c
-index fa27e947eed2..2dc3b33ebd15 100644
+index 35e81201cb5d..1d44c2a8bb0d 100644
 --- a/arch/arm/mach-imx/mach-imx6ul.c
 +++ b/arch/arm/mach-imx/mach-imx6ul.c
-@@ -10,6 +10,7 @@
+@@ -6,6 +6,7 @@
+ #include <linux/mfd/syscon.h>
  #include <linux/mfd/syscon/imx6q-iomuxc-gpr.h>
  #include <linux/micrel_phy.h>
- #include <linux/of_platform.h>
 +#include <linux/of_address.h>
+ #include <linux/of_platform.h>
  #include <linux/phy.h>
  #include <linux/regmap.h>
- #include <asm/mach/arch.h>
-@@ -62,6 +63,8 @@ static inline void imx6ul_enet_init(void)
+@@ -35,6 +36,9 @@ static inline void imx6ul_enet_init(void)
+ 
  static void __init imx6ul_init_machine(void)
  {
- 	struct device *parent;
 +	void __iomem *iomux;
 +	struct device_node *np;
++
+ 	imx_print_silicon_rev(cpu_is_imx6ull() ? "i.MX6ULL" : "i.MX6UL",
+ 		imx_get_soc_revision());
  
- 	system_rev = imx_get_soc_revision();
- 	if (cpu_is_imx6ull())
-@@ -77,6 +80,36 @@ static void __init imx6ul_init_machine(void)
+@@ -42,6 +46,36 @@ static void __init imx6ul_init_machine(void)
  	imx6ul_enet_init();
  	imx_anatop_init();
  	imx6ul_pm_init();

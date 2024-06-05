@@ -1,0 +1,158 @@
+From 9ccea35ec735e417cdad067ff8f971babc59d8c0 Mon Sep 17 00:00:00 2001
+From: Stefan Eichenberger <eichest@gmail.com>
+Date: Mon, 10 Jul 2023 13:44:21 +0200
+Subject: [PATCH] drm/panel: sitronix-st7789v: set correct mode for Stromer
+
+Stromer only connects the display with 16 data lines. Therefore, we have
+to force 565 mode. Further, it seems the default driver inverts the
+colors on the display which is not what we want. Then we also set the
+PHSYNC and PVSYNC flags for the display mode, because this is what we
+configure.
+
+Signed-off-by: Stefan Eichenberger <eichest@gmail.com>
+
+%% original patch: st7789v.patch
+---
+ .../gpu/drm/panel/panel-sitronix-st7789v.c    | 80 +++++++++----------
+ 1 file changed, 40 insertions(+), 40 deletions(-)
+
+diff --git a/drivers/gpu/drm/panel/panel-sitronix-st7789v.c b/drivers/gpu/drm/panel/panel-sitronix-st7789v.c
+index 61e565524542..d6069359b941 100644
+--- a/drivers/gpu/drm/panel/panel-sitronix-st7789v.c
++++ b/drivers/gpu/drm/panel/panel-sitronix-st7789v.c
+@@ -11,6 +11,7 @@
+ 
+ #include <video/mipi_display.h>
+ 
++#include <drm/drm_crtc.h>
+ #include <drm/drm_device.h>
+ #include <drm/drm_modes.h>
+ #include <drm/drm_panel.h>
+@@ -165,12 +166,14 @@ static const struct drm_display_mode default_mode = {
+ 	.vsync_start = 320 + 8,
+ 	.vsync_end = 320 + 8 + 4,
+ 	.vtotal = 320 + 8 + 4 + 4,
++	.flags = DRM_MODE_FLAG_PHSYNC | DRM_MODE_FLAG_PVSYNC,
+ };
+ 
+ static int st7789v_get_modes(struct drm_panel *panel,
+ 			     struct drm_connector *connector)
+ {
+ 	struct drm_display_mode *mode;
++	u32 bus_format = MEDIA_BUS_FMT_RGB565_1X16;
+ 
+ 	mode = drm_mode_duplicate(connector->dev, &default_mode);
+ 	if (!mode) {
+@@ -185,8 +188,13 @@ static int st7789v_get_modes(struct drm_panel *panel,
+ 	mode->type = DRM_MODE_TYPE_DRIVER | DRM_MODE_TYPE_PREFERRED;
+ 	drm_mode_probed_add(connector, mode);
+ 
++	connector->display_info.bpc = 6;
+ 	connector->display_info.width_mm = 61;
+ 	connector->display_info.height_mm = 103;
++	drm_display_info_set_bus_formats(&connector->display_info, &bus_format, 1);
++	connector->display_info.bus_flags = DRM_BUS_FLAG_DE_HIGH
++					  | DRM_BUS_FLAG_PIXDATA_SAMPLE_POSEDGE
++					  | DRM_BUS_FLAG_SHARP_SIGNALS;
+ 
+ 	return 1;
+ }
+@@ -217,8 +225,8 @@ static int st7789v_prepare(struct drm_panel *panel)
+ 	ST7789V_TEST(ret, st7789v_write_command(ctx,
+ 						MIPI_DCS_SET_PIXEL_FORMAT));
+ 	ST7789V_TEST(ret, st7789v_write_data(ctx,
+-					     (MIPI_DCS_PIXEL_FMT_18BIT << 4) |
+-					     (MIPI_DCS_PIXEL_FMT_18BIT)));
++					     (MIPI_DCS_PIXEL_FMT_16BIT << 4) |
++					     (MIPI_DCS_PIXEL_FMT_16BIT)));
+ 
+ 	ST7789V_TEST(ret, st7789v_write_command(ctx, ST7789V_PORCTRL_CMD));
+ 	ST7789V_TEST(ret, st7789v_write_data(ctx, 0xc));
+@@ -261,42 +269,36 @@ static int st7789v_prepare(struct drm_panel *panel)
+ 					     ST7789V_PWCTRL1_VDS(1)));
+ 
+ 	ST7789V_TEST(ret, st7789v_write_command(ctx, ST7789V_PVGAMCTRL_CMD));
+-	ST7789V_TEST(ret, st7789v_write_data(ctx, ST7789V_PVGAMCTRL_VP63(0xd)));
+-	ST7789V_TEST(ret, st7789v_write_data(ctx, ST7789V_PVGAMCTRL_VP1(0xca)));
+-	ST7789V_TEST(ret, st7789v_write_data(ctx, ST7789V_PVGAMCTRL_VP2(0xe)));
+-	ST7789V_TEST(ret, st7789v_write_data(ctx, ST7789V_PVGAMCTRL_VP4(8)));
+-	ST7789V_TEST(ret, st7789v_write_data(ctx, ST7789V_PVGAMCTRL_VP6(9)));
+-	ST7789V_TEST(ret, st7789v_write_data(ctx, ST7789V_PVGAMCTRL_VP13(7)));
+-	ST7789V_TEST(ret, st7789v_write_data(ctx, ST7789V_PVGAMCTRL_VP20(0x2d)));
+-	ST7789V_TEST(ret, st7789v_write_data(ctx, ST7789V_PVGAMCTRL_VP27(0xb) |
+-					     ST7789V_PVGAMCTRL_VP36(3)));
+-	ST7789V_TEST(ret, st7789v_write_data(ctx, ST7789V_PVGAMCTRL_VP43(0x3d)));
+-	ST7789V_TEST(ret, st7789v_write_data(ctx, ST7789V_PVGAMCTRL_JP1(3) |
+-					     ST7789V_PVGAMCTRL_VP50(4)));
+-	ST7789V_TEST(ret, st7789v_write_data(ctx, ST7789V_PVGAMCTRL_VP57(0xa)));
+-	ST7789V_TEST(ret, st7789v_write_data(ctx, ST7789V_PVGAMCTRL_VP59(0xa)));
+-	ST7789V_TEST(ret, st7789v_write_data(ctx, ST7789V_PVGAMCTRL_VP61(0x1b)));
+-	ST7789V_TEST(ret, st7789v_write_data(ctx, ST7789V_PVGAMCTRL_VP62(0x28)));
++	ST7789V_TEST(ret, st7789v_write_data(ctx, 0xd0));
++	ST7789V_TEST(ret, st7789v_write_data(ctx, 0x00));
++	ST7789V_TEST(ret, st7789v_write_data(ctx, 0x06));
++	ST7789V_TEST(ret, st7789v_write_data(ctx, 0x09));
++	ST7789V_TEST(ret, st7789v_write_data(ctx, 0x0b));
++	ST7789V_TEST(ret, st7789v_write_data(ctx, 0x2a));
++	ST7789V_TEST(ret, st7789v_write_data(ctx, 0x3c));
++	ST7789V_TEST(ret, st7789v_write_data(ctx, 0x55));
++	ST7789V_TEST(ret, st7789v_write_data(ctx, 0x4b));
++	ST7789V_TEST(ret, st7789v_write_data(ctx, 0x08));
++	ST7789V_TEST(ret, st7789v_write_data(ctx, 0x16));
++	ST7789V_TEST(ret, st7789v_write_data(ctx, 0x14));
++	ST7789V_TEST(ret, st7789v_write_data(ctx, 0x19));
++	ST7789V_TEST(ret, st7789v_write_data(ctx, 0x20));
+ 
+ 	ST7789V_TEST(ret, st7789v_write_command(ctx, ST7789V_NVGAMCTRL_CMD));
+-	ST7789V_TEST(ret, st7789v_write_data(ctx, ST7789V_NVGAMCTRL_VN63(0xd)));
+-	ST7789V_TEST(ret, st7789v_write_data(ctx, ST7789V_NVGAMCTRL_VN1(0xca)));
+-	ST7789V_TEST(ret, st7789v_write_data(ctx, ST7789V_NVGAMCTRL_VN2(0xf)));
+-	ST7789V_TEST(ret, st7789v_write_data(ctx, ST7789V_NVGAMCTRL_VN4(8)));
+-	ST7789V_TEST(ret, st7789v_write_data(ctx, ST7789V_NVGAMCTRL_VN6(8)));
+-	ST7789V_TEST(ret, st7789v_write_data(ctx, ST7789V_NVGAMCTRL_VN13(7)));
+-	ST7789V_TEST(ret, st7789v_write_data(ctx, ST7789V_NVGAMCTRL_VN20(0x2e)));
+-	ST7789V_TEST(ret, st7789v_write_data(ctx, ST7789V_NVGAMCTRL_VN27(0xc) |
+-					     ST7789V_NVGAMCTRL_VN36(5)));
+-	ST7789V_TEST(ret, st7789v_write_data(ctx, ST7789V_NVGAMCTRL_VN43(0x40)));
+-	ST7789V_TEST(ret, st7789v_write_data(ctx, ST7789V_NVGAMCTRL_JN1(3) |
+-					     ST7789V_NVGAMCTRL_VN50(4)));
+-	ST7789V_TEST(ret, st7789v_write_data(ctx, ST7789V_NVGAMCTRL_VN57(9)));
+-	ST7789V_TEST(ret, st7789v_write_data(ctx, ST7789V_NVGAMCTRL_VN59(0xb)));
+-	ST7789V_TEST(ret, st7789v_write_data(ctx, ST7789V_NVGAMCTRL_VN61(0x1b)));
+-	ST7789V_TEST(ret, st7789v_write_data(ctx, ST7789V_NVGAMCTRL_VN62(0x28)));
+-
+-	ST7789V_TEST(ret, st7789v_write_command(ctx, MIPI_DCS_ENTER_INVERT_MODE));
++	ST7789V_TEST(ret, st7789v_write_data(ctx, 0xd0));
++	ST7789V_TEST(ret, st7789v_write_data(ctx, 0x00));
++	ST7789V_TEST(ret, st7789v_write_data(ctx, 0x06));
++	ST7789V_TEST(ret, st7789v_write_data(ctx, 0x09));
++	ST7789V_TEST(ret, st7789v_write_data(ctx, 0x0b));
++	ST7789V_TEST(ret, st7789v_write_data(ctx, 0x29));
++	ST7789V_TEST(ret, st7789v_write_data(ctx, 0x36));
++	ST7789V_TEST(ret, st7789v_write_data(ctx, 0x54));
++	ST7789V_TEST(ret, st7789v_write_data(ctx, 0x4b));
++	ST7789V_TEST(ret, st7789v_write_data(ctx, 0x0d));
++	ST7789V_TEST(ret, st7789v_write_data(ctx, 0x16));
++	ST7789V_TEST(ret, st7789v_write_data(ctx, 0x14));
++	ST7789V_TEST(ret, st7789v_write_data(ctx, 0x21));
++	ST7789V_TEST(ret, st7789v_write_data(ctx, 0x20));
+ 
+ 	ST7789V_TEST(ret, st7789v_write_command(ctx, ST7789V_RAMCTRL_CMD));
+ 	ST7789V_TEST(ret, st7789v_write_data(ctx, ST7789V_RAMCTRL_DM_RGB |
+@@ -305,11 +307,9 @@ static int st7789v_prepare(struct drm_panel *panel)
+ 					     ST7789V_RAMCTRL_MAGIC));
+ 
+ 	ST7789V_TEST(ret, st7789v_write_command(ctx, ST7789V_RGBCTRL_CMD));
+-	ST7789V_TEST(ret, st7789v_write_data(ctx, ST7789V_RGBCTRL_WO |
+-					     ST7789V_RGBCTRL_RCM(2) |
++	ST7789V_TEST(ret, st7789v_write_data(ctx, ST7789V_RGBCTRL_RCM(2) |
+ 					     ST7789V_RGBCTRL_VSYNC_HIGH |
+-					     ST7789V_RGBCTRL_HSYNC_HIGH |
+-					     ST7789V_RGBCTRL_PCLK_HIGH));
++					     ST7789V_RGBCTRL_HSYNC_HIGH));
+ 	ST7789V_TEST(ret, st7789v_write_data(ctx, ST7789V_RGBCTRL_VBP(8)));
+ 	ST7789V_TEST(ret, st7789v_write_data(ctx, ST7789V_RGBCTRL_HBP(20)));
+ 
+-- 
+2.39.2
+
