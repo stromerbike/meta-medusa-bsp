@@ -83,7 +83,7 @@ index f5fa7be8d17e..bf53199a5aed 100644
  	struct worker *worker;
  	int id;
  	char id_buf[16];
-+	struct sched_param sp = { .sched_priority = 5 };
++	struct sched_param sp = { .sched_priority = 12 };
  
  	/* ID is needed to determine kthread name */
  	id = ida_alloc(&pool->worker_ida, GFP_KERNEL);
