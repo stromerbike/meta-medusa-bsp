@@ -1,0 +1,24 @@
+diff --git a/drivers/net/can/flexcan.c b/drivers/net/can/flexcan.c
+index 837bca734759..2f2b5eda4f30 100644
+--- a/drivers/net/can/flexcan.c
++++ b/drivers/net/can/flexcan.c
+@@ -864,6 +864,9 @@ static netdev_tx_t flexcan_start_xmit(struct sk_buff *skb, struct net_device *de
+ 		priv->write(data, &priv->tx_mb->data[i / sizeof(u32)]);
+ 	}
+ 
++	struct skb_shared_hwtstamps *hwts = skb_hwtstamps(skb);
++	hwts->hwtstamp = ktime_get();
++
+ 	can_put_echo_skb(skb, dev, 0, 0);
+ 
+ 	priv->write(can_id, &priv->tx_mb->can_id);
+@@ -1119,6 +1122,9 @@ static struct sk_buff *flexcan_mailbox_read(struct can_rx_offload *offload,
+ 	 */
+ 	priv->read(&regs->timer);
+ 
++	struct skb_shared_hwtstamps *hwts = skb_hwtstamps(skb);
++	hwts->hwtstamp = ktime_get();
++
+ 	return skb;
+ }
+ 
