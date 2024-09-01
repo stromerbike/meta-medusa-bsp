@@ -57,12 +57,6 @@ do_compile:prepend() {
     export KBUILD_BUILD_TIMESTAMP="imx6ul(l)-${DISTRO}"
 }
 
-do_install:append() {
-    # Remove barebox from rootfs
-    rm ${D}${base_bootdir}/${BAREBOX_IMAGE_NAME}.bin
-    rm ${D}${base_bootdir}/${BAREBOX_BIN_LINK_NAME}
-}
-
 python do_env:append() {
     env_add(d, "nv/allow_color", "true\n")
     env_add(d, "nv/autoboot_timeout", "0\n")
