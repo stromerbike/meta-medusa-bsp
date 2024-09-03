@@ -1,3 +1,16 @@
+From c335be4beec39cc5617ee7d50c8e7ca5ededac59 Mon Sep 17 00:00:00 2001
+From: "tristan.ramseyer" <tristan.ramseyer@stromerbike.com>
+Date: Tue, 3 Sep 2024 15:10:31 +0200
+Subject: [PATCH] clk fix
+
+Patch by Christian Duenki <christian.duenki@escatec.com>
+Upstream-Status: Inappropriate [stromer-specific]
+
+Signed-off-by: tristan.ramseyer <tristan.ramseyer@stromerbike.com>
+---
+ arch/arm/mach-imx/mach-imx6ul.c | 34 +++++++++++++++++++++++++++++++++
+ 1 file changed, 34 insertions(+)
+
 diff --git a/arch/arm/mach-imx/mach-imx6ul.c b/arch/arm/mach-imx/mach-imx6ul.c
 index 35e81201cb5d..1d44c2a8bb0d 100644
 --- a/arch/arm/mach-imx/mach-imx6ul.c
@@ -57,3 +70,6 @@ index 35e81201cb5d..1d44c2a8bb0d 100644
  }
  
  static void __init imx6ul_init_irq(void)
+-- 
+2.34.1
+

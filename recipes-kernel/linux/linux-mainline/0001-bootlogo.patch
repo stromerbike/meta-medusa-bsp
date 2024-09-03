@@ -1,3 +1,18 @@
+From c0b4f320a52aef4e73260e9d2f40a962e6a662cc Mon Sep 17 00:00:00 2001
+From: "tristan.ramseyer" <tristan.ramseyer@stromerbike.com>
+Date: Tue, 3 Sep 2024 15:16:23 +0200
+Subject: [PATCH] bootlogo
+
+Upstream-Status: Inappropriate [stromer-specific]
+Signed-off-by: tristan.ramseyer <tristan.ramseyer@stromerbike.com>
+---
+ drivers/video/logo/Kconfig                  |     4 +
+ drivers/video/logo/Makefile                 |     1 +
+ drivers/video/logo/logo.c                   |     6 +
+ drivers/video/logo/logo_stromer_clut224.ppm | 12803 ++++++++++++++++++
+ 4 files changed, 12814 insertions(+)
+ create mode 100644 drivers/video/logo/logo_stromer_clut224.ppm
+
 diff --git a/drivers/video/logo/Kconfig b/drivers/video/logo/Kconfig
 index 6d6f8c08792d..dccf40227b65 100644
 --- a/drivers/video/logo/Kconfig
@@ -12,7 +27,7 @@ index 6d6f8c08792d..dccf40227b65 100644
 +
  endif # LOGO
 diff --git a/drivers/video/logo/Makefile b/drivers/video/logo/Makefile
-index 16f60c1e1766..33c0e92c739e 100644
+index 895c60b8402e..d4775192467d 100644
 --- a/drivers/video/logo/Makefile
 +++ b/drivers/video/logo/Makefile
 @@ -13,6 +13,7 @@ obj-$(CONFIG_LOGO_SUN_CLUT224)		+= logo_sun_clut224.o
@@ -12856,3 +12871,6 @@ index 000000000000..70ff6e370220
 +0 0 0  0 0 0  0 0 0  0 0 0  0 0 0  0 0 0
 +0 0 0  0 0 0  0 0 0  0 0 0  0 0 0  0 0 0
 +0 0 0  0 0 0  0 0 0  0 0 0  0 0 0  0 0 0
+-- 
+2.34.1
+

@@ -1,3 +1,21 @@
+From 565f0c4078daa366bd021f1c78ef17a58c3b6154 Mon Sep 17 00:00:00 2001
+From: "tristan.ramseyer" <tristan.ramseyer@stromerbike.com>
+Date: Tue, 3 Sep 2024 15:18:47 +0200
+Subject: [PATCH] ext gpio
+
+Copy of GPIO_PCA953X to use it as a module with GPIO_PCA953X compiled in.
+
+Original patch by Christian Duenki <christian.duenki@escatec.com>
+
+Upstream-Status: Inappropriate [stromer-specific]
+Signed-off-by: tristan.ramseyer <tristan.ramseyer@stromerbike.com>
+---
+ drivers/gpio/Kconfig                 |    8 +
+ drivers/gpio/Makefile                |    1 +
+ drivers/gpio/gpio-pca953x-external.c | 1206 ++++++++++++++++++++++++++
+ 3 files changed, 1215 insertions(+)
+ create mode 100644 drivers/gpio/gpio-pca953x-external.c
+
 diff --git a/drivers/gpio/Kconfig b/drivers/gpio/Kconfig
 index 947474f6abb4..593af45b050a 100644
 --- a/drivers/gpio/Kconfig
@@ -1241,3 +1259,6 @@ index 000000000000..4f253eaa88ab
 +MODULE_AUTHOR("Oliver Buntschu <oliver.buntschu@stromerbike.com>");
 +MODULE_DESCRIPTION("GPIO expander driver for PCA953x");
 +MODULE_LICENSE("GPL");
+-- 
+2.34.1
+

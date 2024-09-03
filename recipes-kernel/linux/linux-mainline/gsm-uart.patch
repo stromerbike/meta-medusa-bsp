@@ -1,3 +1,21 @@
+From 5edf5226dca00f9512002657374d13feddcd178a Mon Sep 17 00:00:00 2001
+From: "tristan.ramseyer" <tristan.ramseyer@stromerbike.com>
+Date: Tue, 3 Sep 2024 15:22:13 +0200
+Subject: [PATCH] gsm uart
+
+Copy of SERIAL_IMX6UL to use it as a module with SERIAL_IMX6UL compiled in.
+
+Original patch by Christian Duenki <christian.duenki@escatec.com>
+
+Upstream-Status: Inappropriate [stromer-specific]
+Signed-off-by: tristan.ramseyer <tristan.ramseyer@stromerbike.com>
+---
+ drivers/tty/serial/Kconfig           |   10 +
+ drivers/tty/serial/Makefile          |    1 +
+ drivers/tty/serial/imx6ul_mod_uart.c | 2527 ++++++++++++++++++++++++++
+ 3 files changed, 2538 insertions(+)
+ create mode 100644 drivers/tty/serial/imx6ul_mod_uart.c
+
 diff --git a/drivers/tty/serial/Kconfig b/drivers/tty/serial/Kconfig
 index 131a6a587acd..2c5ce8fcdbb3 100644
 --- a/drivers/tty/serial/Kconfig
@@ -2564,3 +2582,6 @@ index 000000000000..b63bbdb2b387
 +MODULE_DESCRIPTION("IMX modified serial port driver");
 +MODULE_LICENSE("GPL");
 +MODULE_ALIAS("platform:imx-mod-uart");
+-- 
+2.34.1
+

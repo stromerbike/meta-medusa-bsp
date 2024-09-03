@@ -1,3 +1,14 @@
+From c85092104bbb9f271c866d7b4312c33649610144 Mon Sep 17 00:00:00 2001
+From: "tristan.ramseyer" <tristan.ramseyer@stromerbike.com>
+Date: Tue, 3 Sep 2024 15:08:39 +0200
+Subject: [PATCH] flexcan emulated hwtstamp
+
+Upstream-Status: Inappropriate [stromer-specific]
+Signed-off-by: tristan.ramseyer <tristan.ramseyer@stromerbike.com>
+---
+ drivers/net/can/flexcan.c | 6 ++++++
+ 1 file changed, 6 insertions(+)
+
 diff --git a/drivers/net/can/flexcan.c b/drivers/net/can/flexcan.c
 index 837bca734759..2f2b5eda4f30 100644
 --- a/drivers/net/can/flexcan.c
@@ -22,3 +33,6 @@ index 837bca734759..2f2b5eda4f30 100644
  	return skb;
  }
  
+-- 
+2.34.1
+

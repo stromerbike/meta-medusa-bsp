@@ -1,3 +1,17 @@
+From bde2f6ad31d66b3ae6624b3b8417408d46ac587c Mon Sep 17 00:00:00 2001
+From: "tristan.ramseyer" <tristan.ramseyer@stromerbike.com>
+Date: Tue, 3 Sep 2024 15:04:10 +0200
+Subject: [PATCH] fsl highprio for drivers/tty/serial/imx
+
+Patch by Stefan Eichenberger <eichest@gmail.com>
+
+Upstream-Status: Inappropriate [stromer-specific]
+Signed-off-by: tristan.ramseyer <tristan.ramseyer@stromerbike.com>
+---
+ drivers/tty/serial/imx.c | 23 ++++++++++++++++++++---
+ kernel/workqueue.c       |  4 ++++
+ 2 files changed, 24 insertions(+), 3 deletions(-)
+
 diff --git a/drivers/tty/serial/imx.c b/drivers/tty/serial/imx.c
 index 77a4f4af3b8d..3dc1d71eac11 100644
 --- a/drivers/tty/serial/imx.c
@@ -68,7 +82,7 @@ index 77a4f4af3b8d..3dc1d71eac11 100644
  		sport->rx_period_length = dma_buf_conf[0];
  		sport->rx_periods = dma_buf_conf[1];
 diff --git a/kernel/workqueue.c b/kernel/workqueue.c
-index f5fa7be8d17e..bf53199a5aed 100644
+index f5fa7be8d17e..001da95ca376 100644
 --- a/kernel/workqueue.c
 +++ b/kernel/workqueue.c
 @@ -25,6 +25,7 @@
@@ -96,3 +110,6 @@ index f5fa7be8d17e..bf53199a5aed 100644
  	kthread_bind_mask(worker->task, pool->attrs->cpumask);
  
  	/* successful, attach the worker to the pool */
+-- 
+2.34.1
+
