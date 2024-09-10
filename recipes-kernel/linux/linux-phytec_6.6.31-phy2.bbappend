@@ -6,7 +6,7 @@ FILESEXTRAPATHS:append := "${THISDIR}/linux-mainline:"
 # LICENSE = "MIT"
 # LIC_FILES_CHKSUM = "file://LICENSE;md5=96af5705d6f64a88e035781ef00e98a8"
 
-KERNEL_DEVICETREE:append = " imx6ull-medusa.dtb"
+KERNEL_DEVICETREE:append = " nxp/imx/imx6ull-medusa.dtb"
 
 SRC_URI += " file://defconfig"
 SRC_URI += " file://imx6ul-medusa.dts"
@@ -63,8 +63,3 @@ module_conf_imx6ul_mod_uart = "blacklist imx6ul_mod_uart"
 
 COMPATIBLE_MACHINE .= "|imx6ul-medusa"
 COMPATIBLE_MACHINE .= "|imx6ull-medusa"
-
-do_configure:append() {
-    cp ${WORKDIR}/imx6ul-medusa.dts ${S}/arch/arm/boot/dts/
-    cp ${WORKDIR}/imx6ull-medusa.dts ${S}/arch/arm/boot/dts/
-}

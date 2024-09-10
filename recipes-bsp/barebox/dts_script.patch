@@ -1,8 +1,8 @@
 diff --git a/arch/arm/dts/imx6ul-phytec-phycore-som-nand.dts b/arch/arm/dts/imx6ul-phytec-phycore-som-nand.dts
-index c8d43c5e25..8bcf8b84ca 100644
+index c8be386e7f..374438d99f 100644
 --- a/arch/arm/dts/imx6ul-phytec-phycore-som-nand.dts
 +++ b/arch/arm/dts/imx6ul-phytec-phycore-som-nand.dts
-@@ -48,3 +48,19 @@
+@@ -48,3 +48,19 @@ &usbotg1 {
  &usbotg2 {
  	status = "okay";
  };
@@ -23,19 +23,14 @@ index c8d43c5e25..8bcf8b84ca 100644
 +	status = "okay";
 +};
 diff --git a/arch/arm/dts/imx6ul-phytec-phycore-som.dtsi b/arch/arm/dts/imx6ul-phytec-phycore-som.dtsi
-index c7c657bcd4..ddb061b063 100644
+index 0f54d8da02..46732e6252 100644
 --- a/arch/arm/dts/imx6ul-phytec-phycore-som.dtsi
 +++ b/arch/arm/dts/imx6ul-phytec-phycore-som.dtsi
-@@ -25,13 +25,51 @@
- 			device-path = &usdhc1, "partname:barebox-environment";
+@@ -32,6 +32,49 @@ environment-sd2 {
  			status = "disabled";
  		};
-+	};
- 
--		environment-sd2 {
--			compatible = "barebox,environment";
--			device-path = &usdhc2, "partname:barebox-environment";
--			status = "disabled";
+ 	};
++
 +	regulators {
 +		compatible = "simple-bus";
 +		#address-cells = <1>;
@@ -48,8 +43,8 @@ index c7c657bcd4..ddb061b063 100644
 +			regulator-min-microvolt = <3300000>;
 +			regulator-max-microvolt = <3300000>;
 +			status = "okay";
- 		};
- 	};
++		};
++	};
 +
 +	background: background {
 +		compatible = "pwm-backlight";
@@ -74,7 +69,6 @@ index c7c657bcd4..ddb061b063 100644
 +	};
 +};
 +
-+
 +&pwm5 {
 +	pinctrl-names = "default";
 +	pinctrl-0 = <&pinctrl_pwm5>;
@@ -82,7 +76,7 @@ index c7c657bcd4..ddb061b063 100644
  };
  
  &fec1 {
-@@ -85,29 +123,44 @@
+@@ -85,12 +128,41 @@ &i2c1 {
  	clock-frequency = <100000>;
  	status = "disabled";
  
@@ -93,24 +87,18 @@ index c7c657bcd4..ddb061b063 100644
  	};
  };
  
--&uart1 {
 +&i2c2 {
- 	pinctrl-names = "default";
--	pinctrl-0 = <&pinctrl_uart1>;
++	pinctrl-names = "default";
 +	pinctrl-0 = <&pinctrl_i2c2>;
 +	clock-frequency = <100000>;
- 	status = "disabled";
- };
- 
--&usbotg1 {
++	status = "disabled";
++};
++
 +&i2c3 {
- 	pinctrl-names = "default";
--	pinctrl-0 = <&pinctrl_usb_otg1>;
--	dr_mode = "otg";
--	disable-over-current;
++	pinctrl-names = "default";
 +	pinctrl-0 = <&pinctrl_i2c3>;
 +	clock-frequency = <100000>;
- 	status = "disabled";
++	status = "disabled";
 +
 +	gpio@20 {
 +		compatible = "ti,tca6416";
@@ -118,11 +106,8 @@ index c7c657bcd4..ddb061b063 100644
 +		#gpio-cells = <2>;
 +		reg = <0x20>;
 +	};
- };
- 
--&usbotg2 {
--	dr_mode = "host";
--	disable-over-current;
++};
++
 +&ecspi1  {
 +	pinctrl-names = "default";
 +	pinctrl-0 = <&pinctrl_ecspi1>;
@@ -131,228 +116,72 @@ index c7c657bcd4..ddb061b063 100644
 +	status = "okay";
 +};
 +
-+&uart1 {
-+	pinctrl-names = "default";
-+	pinctrl-0 = <&pinctrl_uart1>;
- 	status = "disabled";
- };
- 
-@@ -131,100 +184,122 @@
- 	};
- };
- 
--&usdhc2 {
-+&usbotg1 {
+ &uart1 {
  	pinctrl-names = "default";
--	pinctrl-0 = <&pinctrl_usdhc2>;
--	bus-width = <8>;
--	non-removable;
+ 	pinctrl-0 = <&pinctrl_uart1>;
+@@ -102,7 +174,7 @@ &usbotg1 {
+ 	pinctrl-0 = <&pinctrl_usb_otg1>;
+ 	dr_mode = "otg";
+ 	disable-over-current;
 -	status = "disabled";
-+	pinctrl-0 = <&pinctrl_usb_otg1_id>;
-+	dr_mode = "otg";
-+	disable-over-current;
 +	status = "okay";
-+};
- 
--	#address-cells = <1>;
--	#size-cells = <1>;
-+&iomuxc {
-+	pinctrl-name = "default";
- 
--	partition@0 {
--		label = "barebox";
--		reg = <0x0 0xe0000>;
-+	imx6ul-phytec-phycore-som {
-+
-+	pinctrl_enet1: enet1grp {
-+		fsl,pins = <
-+			MX6UL_PAD_GPIO1_IO07__ENET1_MDC			0x1b0b0
-+			MX6UL_PAD_GPIO1_IO06__ENET1_MDIO		0x1b0b0
-+			MX6UL_PAD_ENET1_RX_EN__ENET1_RX_EN		0x1b0b0
-+			MX6UL_PAD_ENET1_RX_ER__ENET1_RX_ER		0x1b0b0
-+			MX6UL_PAD_ENET1_RX_DATA0__ENET1_RDATA00	0x1b0b0
-+			MX6UL_PAD_ENET1_RX_DATA1__ENET1_RDATA01	0x1b0b0
-+			MX6UL_PAD_ENET1_TX_EN__ENET1_TX_EN		0x1b0b0
-+			MX6UL_PAD_ENET1_TX_DATA0__ENET1_TDATA00	0x1b0b0
-+			MX6UL_PAD_ENET1_TX_DATA1__ENET1_TDATA01	0x1b0b0
-+			MX6UL_PAD_ENET1_TX_CLK__ENET1_REF_CLK1	0x4001b031
-+		>;
- 	};
- 
--	partition@e0000 {
--		label = "barebox-environment";
--		reg = <0xe0000 0x20000>;
-+	pinctrl_gpmi_nand: gpminandgrp {
-+		fsl,pins = <
-+			MX6UL_PAD_NAND_CLE__RAWNAND_CLE			0x0b0b1
-+			MX6UL_PAD_NAND_ALE__RAWNAND_ALE			0x0b0b1
-+			MX6UL_PAD_NAND_WP_B__RAWNAND_WP_B		0x0b0b1
-+			MX6UL_PAD_NAND_READY_B__RAWNAND_READY_B	0x0b000
-+			MX6UL_PAD_NAND_CE0_B__RAWNAND_CE0_B		0x0b0b1
-+			MX6UL_PAD_NAND_RE_B__RAWNAND_RE_B		0x0b0b1
-+			MX6UL_PAD_NAND_WE_B__RAWNAND_WE_B		0x0b0b1
-+			MX6UL_PAD_NAND_DATA00__RAWNAND_DATA00	0x0b0b1
-+			MX6UL_PAD_NAND_DATA01__RAWNAND_DATA01	0x0b0b1
-+			MX6UL_PAD_NAND_DATA02__RAWNAND_DATA02	0x0b0b1
-+			MX6UL_PAD_NAND_DATA03__RAWNAND_DATA03	0x0b0b1
-+			MX6UL_PAD_NAND_DATA04__RAWNAND_DATA04	0x0b0b1
-+			MX6UL_PAD_NAND_DATA05__RAWNAND_DATA05	0x0b0b1
-+			MX6UL_PAD_NAND_DATA06__RAWNAND_DATA06	0x0b0b1
-+			MX6UL_PAD_NAND_DATA07__RAWNAND_DATA07	0x0b0b1
-+		>;
- 	};
--};
- 
--&iomuxc {
--        pinctrl-names = "default";
-+	pinctrl_i2c1: i2c1grp {
-+		fsl,pins = <
-+			MX6UL_PAD_UART4_TX_DATA__I2C1_SCL	0x4001b8b0
-+			MX6UL_PAD_UART4_RX_DATA__I2C1_SDA	0x4001b8b0
-+		>;
-+	};
- 
--	imx6ul-phytec-phycore-som {
-+	pinctrl_i2c2: i2c2grp {
-+		fsl,pins = <
-+			MX6UL_PAD_CSI_HSYNC__I2C2_SCL	0x4001b8b0
-+			MX6UL_PAD_CSI_VSYNC__I2C2_SDA	0x4001b8b0
-+		>;
-+	};
- 
--		pinctrl_enet1: enet1grp {
--			fsl,pins = <
--				MX6UL_PAD_GPIO1_IO07__ENET1_MDC		0x10010
--				MX6UL_PAD_GPIO1_IO06__ENET1_MDIO	0x10010
--				MX6UL_PAD_ENET1_RX_EN__ENET1_RX_EN	0x1b0b0
--				MX6UL_PAD_ENET1_RX_ER__ENET1_RX_ER	0x1b0b0
--				MX6UL_PAD_ENET1_RX_DATA0__ENET1_RDATA00	0x1b0b0
--				MX6UL_PAD_ENET1_RX_DATA1__ENET1_RDATA01	0x1b0b0
--				MX6UL_PAD_ENET1_TX_EN__ENET1_TX_EN	0x1b010
--				MX6UL_PAD_ENET1_TX_DATA0__ENET1_TDATA00	0x1b010
--				MX6UL_PAD_ENET1_TX_DATA1__ENET1_TDATA01	0x1b010
--				MX6UL_PAD_ENET1_TX_CLK__ENET1_REF_CLK1	0x4001b010
--			>;
--		};
-+	pinctrl_i2c3: i2c3grp {
-+		fsl,pins = <
-+			MX6UL_PAD_ENET2_RX_DATA0__I2C3_SCL	0x4001b8b0
-+			MX6UL_PAD_ENET2_RX_DATA1__I2C3_SDA	0x4001b8b0
-+		>;
-+	};
- 
--		pinctrl_gpmi_nand: gpminandgrp {
--			fsl,pins = <
--				MX6UL_PAD_NAND_CLE__RAWNAND_CLE		0x0b0b1
--				MX6UL_PAD_NAND_ALE__RAWNAND_ALE		0x0b0b1
--				MX6UL_PAD_NAND_WP_B__RAWNAND_WP_B	0x0b0b1
--				MX6UL_PAD_NAND_READY_B__RAWNAND_READY_B	0x0b000
--				MX6UL_PAD_NAND_CE0_B__RAWNAND_CE0_B	0x0b0b1
--				MX6UL_PAD_NAND_RE_B__RAWNAND_RE_B	0x0b0b1
--				MX6UL_PAD_NAND_WE_B__RAWNAND_WE_B	0x0b0b1
--				MX6UL_PAD_NAND_DATA00__RAWNAND_DATA00	0x0b0b1
--				MX6UL_PAD_NAND_DATA01__RAWNAND_DATA01	0x0b0b1
--				MX6UL_PAD_NAND_DATA02__RAWNAND_DATA02	0x0b0b1
--				MX6UL_PAD_NAND_DATA03__RAWNAND_DATA03	0x0b0b1
--				MX6UL_PAD_NAND_DATA04__RAWNAND_DATA04	0x0b0b1
--				MX6UL_PAD_NAND_DATA05__RAWNAND_DATA05	0x0b0b1
--				MX6UL_PAD_NAND_DATA06__RAWNAND_DATA06	0x0b0b1
--				MX6UL_PAD_NAND_DATA07__RAWNAND_DATA07	0x0b0b1
--			>;
--		};
-+	pinctrl_ecspi1: ecspi1grp {
-+		fsl,pins = <
-+			MX6UL_PAD_LCD_DATA20__ECSPI1_SCLK	0x1b0b1
-+			MX6UL_PAD_LCD_DATA22__ECSPI1_MOSI	0x1b0b1
-+			MX6UL_PAD_LCD_DATA23__ECSPI1_MISO	0x1b0b1
-+			MX6UL_PAD_LCD_DATA21__ECSPI1_SS0	0x80000000
-+		>;
-+	};
- 
--		pinctrl_i2c1: i2cgrp {
--			fsl,pins = <
--				MX6UL_PAD_UART4_TX_DATA__I2C1_SCL	0x4001b8b0
--				MX6UL_PAD_UART4_RX_DATA__I2C1_SDA	0x4001b8b0
--			>;
--		};
-+	pinctrl_uart1: uart1grp {
-+		fsl,pins = <
-+			MX6UL_PAD_UART1_TX_DATA__UART1_DCE_TX	0x1b0b1
-+			MX6UL_PAD_UART1_RX_DATA__UART1_DCE_RX	0x1b0b1
-+		>;
-+	};
- 
--		pinctrl_uart1: uart1grp {
--			fsl,pins = <
--				MX6UL_PAD_UART1_TX_DATA__UART1_DCE_TX	0x1b0b1
--				MX6UL_PAD_UART1_RX_DATA__UART1_DCE_RX	0x1b0b1
--			>;
--		};
-+	pinctrl_usdhc1: usdhc1grp {
-+		fsl,pins = <
-+			MX6UL_PAD_SD1_CMD__USDHC1_CMD		0x17059
-+			MX6UL_PAD_SD1_CLK__USDHC1_CLK		0x10059
-+			MX6UL_PAD_SD1_DATA0__USDHC1_DATA0	0x17059
-+			MX6UL_PAD_SD1_DATA1__USDHC1_DATA1	0x17059
-+			MX6UL_PAD_SD1_DATA2__USDHC1_DATA2	0x17059
-+			MX6UL_PAD_SD1_DATA3__USDHC1_DATA3	0x17059
-+			MX6UL_PAD_UART1_RTS_B__GPIO1_IO19	0x17059 /* SD1 CD */
-+		>;
-+	};
- 
--		pinctrl_usb_otg1: usbotg1grp {
--			fsl,pins = <
--				MX6UL_PAD_GPIO1_IO00__ANATOP_OTG1_ID	0x17059
--			>;
--		};
-+	pinctrl_usb_otg1_id: usbotg1idgrp {
-+		fsl,pins = <
-+			MX6UL_PAD_GPIO1_IO00__ANATOP_OTG1_ID	0x17059
-+		>;
-+	};
- 
--		pinctrl_usdhc1: usdhc1grp {
--			fsl,pins = <
--				MX6UL_PAD_SD1_CMD__USDHC1_CMD     	0x17059
--				MX6UL_PAD_SD1_CLK__USDHC1_CLK     	0x10059
--				MX6UL_PAD_SD1_DATA0__USDHC1_DATA0 	0x17059
--				MX6UL_PAD_SD1_DATA1__USDHC1_DATA1 	0x17059
--				MX6UL_PAD_SD1_DATA2__USDHC1_DATA2 	0x17059
--				MX6UL_PAD_SD1_DATA3__USDHC1_DATA3 	0x17059
--				MX6UL_PAD_UART1_RTS_B__GPIO1_IO19       0x17059 /* SD1 CD */
--			>;
--		};
-+	pinctrl_io: iogrp {
-+		fsl,pins = <
-+				 MX6UL_PAD_UART2_RTS_B__GPIO1_IO23 0x79 /* Force OTG1 ID */
-+		>;
-+	};
- 
--		pinctrl_usdhc2: usdhc2grp {
-+	pinctrl_pwm5: pwm5grp {
-+		fsl,pins = <
-+			MX6UL_PAD_LCD_DATA18__PWM5_OUT	0x1b0b0
-+		>;
-+	};
-+
-+	pinctrl_usdhc2: usdhc2grp {
- 			fsl,pins = <
- 				MX6UL_PAD_NAND_WE_B__USDHC2_CMD     	0x17059
- 				MX6UL_PAD_NAND_RE_B__USDHC2_CLK     	0x10059
-@@ -237,7 +312,7 @@
- 				MX6UL_PAD_NAND_DATA06__USDHC2_DATA6 	0x17059
- 				MX6UL_PAD_NAND_DATA07__USDHC2_DATA7 	0x17059
- 			>;
--		};
-+	};
- 	};
  };
  
+ &usbotg2 {
+@@ -203,6 +275,29 @@ MX6UL_PAD_UART4_RX_DATA__I2C1_SDA	0x4001b8b0
+ 			>;
+ 		};
+ 
++		pinctrl_i2c2: i2c2grp {
++			fsl,pins = <
++				MX6UL_PAD_CSI_HSYNC__I2C2_SCL	0x4001b8b0
++				MX6UL_PAD_CSI_VSYNC__I2C2_SDA	0x4001b8b0
++			>;
++		};
++
++		pinctrl_i2c3: i2c3grp {
++			fsl,pins = <
++				MX6UL_PAD_ENET2_RX_DATA0__I2C3_SCL	0x4001b8b0
++				MX6UL_PAD_ENET2_RX_DATA1__I2C3_SDA	0x4001b8b0
++			>;
++		};
++
++		pinctrl_ecspi1: ecspi1grp {
++			fsl,pins = <
++				MX6UL_PAD_LCD_DATA20__ECSPI1_SCLK	0x1b0b1
++				MX6UL_PAD_LCD_DATA22__ECSPI1_MOSI	0x1b0b1
++				MX6UL_PAD_LCD_DATA23__ECSPI1_MISO	0x1b0b1
++				MX6UL_PAD_LCD_DATA21__ECSPI1_SS0	0x80000000
++			>;
++		};
++
+ 		pinctrl_uart1: uart1grp {
+ 			fsl,pins = <
+ 				MX6UL_PAD_UART1_TX_DATA__UART1_DCE_TX	0x1b0b1
+@@ -216,6 +311,18 @@ MX6UL_PAD_GPIO1_IO00__ANATOP_OTG1_ID	0x17059
+ 			>;
+ 		};
+ 
++		pinctrl_io: iogrp {
++			fsl,pins = <
++				 MX6UL_PAD_UART2_RTS_B__GPIO1_IO23 0x79 /* Force OTG1 ID */
++			>;
++		};
++
++		pinctrl_pwm5: pwm5grp {
++			fsl,pins = <
++				MX6UL_PAD_LCD_DATA18__PWM5_OUT	0x1b0b0
++			>;
++		};
++
+ 		pinctrl_usdhc1: usdhc1grp {
+ 			fsl,pins = <
+ 				MX6UL_PAD_SD1_CMD__USDHC1_CMD     	0x17059
 diff --git a/arch/arm/dts/imx6ul-phytec-state.dtsi b/arch/arm/dts/imx6ul-phytec-state.dtsi
-index 78a32ed96b..a50cfa8465 100644
+index d0cad1b516..0232de01fd 100644
 --- a/arch/arm/dts/imx6ul-phytec-state.dtsi
 +++ b/arch/arm/dts/imx6ul-phytec-state.dtsi
-@@ -9,74 +9,102 @@
+@@ -9,72 +9,87 @@ aliases {
  		state = &state;
  	};
  
@@ -371,29 +200,27 @@ index 78a32ed96b..a50cfa8465 100644
 +		backend-stridesize = <0x70>;
  		status = "disabled";
  
--		#address-cells = <1>;
--		#size-cells = <1>;
 -		bootstate {
 -			#address-cells = <1>;
 -			#size-cells = <1>;
--			last_chosen {
+-			last_chosen@0 {
 -				reg = <0x0 0x4>;
 -				type = "uint32";
 -			};
 -			system0 {
 -				#address-cells = <1>;
 -				#size-cells = <1>;
--				remaining_attempts {
+-				remaining_attempts@4 {
 -					reg = <0x4 0x4>;
 -					type = "uint32";
 -					default = <3>;
 -				};
--				priority {
+-				priority@8 {
 -					reg = <0x8 0x4>;
 -					type = "uint32";
 -					default = <21>;
 -				};
--				ok {
+-				ok@c {
 -					reg = <0xc 0x4>;
 -					type = "uint32";
 -					default = <0>;
@@ -402,17 +229,17 @@ index 78a32ed96b..a50cfa8465 100644
 -			system1 {
 -				#address-cells = <1>;
 -				#size-cells = <1>;
--				remaining_attempts {
+-				remaining_attempts@10 {
 -					reg = <0x10 0x4>;
 -					type = "uint32";
 -					default = <3>;
 -				};
--				priority {
+-				priority@14 {
 -					reg = <0x14 0x4>;
 -					type = "uint32";
 -					default = <20>;
 -				};
--				ok {
+-				ok@18 {
 -					reg = <0x18 0x4>;
 -					type = "uint32";
 -					default = <0>;
@@ -482,8 +309,18 @@ index 78a32ed96b..a50cfa8465 100644
 +			type = "enum32";
 +			names = "0", "1";
 +			default = <0x1>;
-+		};
-+
+ 		};
+-	};
+-};
+ 
+-&eeprom {
+-	partitions {
+-		compatible = "fixed-partitions";
+-		#size-cells = <1>;
+-		#address-cells = <1>;
+-		backend_update_eeprom: state@0 {
+-			reg = <0x0 0x100>;
+-			label = "update-eeprom";
 +		label {
 +			reg = <0x30 0x14>;
 +			type = "string";
@@ -491,28 +328,11 @@ index 78a32ed96b..a50cfa8465 100644
  		};
  	};
  };
- 
-+#if 0
- &eeprom {
- 	partitions {
- 		compatible = "fixed-partitions";
- 		#size-cells = <1>;
- 		#address-cells = <1>;
--		backend_update_eeprom: state@0 {
-+		backend_state_eeprom: state@0 {
-+		/* backend_state_eeprom { */
- 			reg = <0x0 0x100>;
--			label = "update-eeprom";
-+			label = "boot-eeprom";
- 		};
- 	};
- };
-+#endif
 diff --git a/common/startup.c b/common/startup.c
-index f53b73f81a..54703f62c2 100644
+index bbba72f892..e318ec310f 100644
 --- a/common/startup.c
 +++ b/common/startup.c
-@@ -244,6 +244,8 @@ static int run_init(void)
+@@ -245,6 +245,8 @@ static int run_init(void)
  	glob_t g;
  	int i, ret;
  

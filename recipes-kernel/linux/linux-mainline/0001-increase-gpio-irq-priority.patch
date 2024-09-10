@@ -14,10 +14,10 @@ Signed-off-by: tristan.ramseyer <tristan.ramseyer@stromerbike.com>
  3 files changed, 39 insertions(+), 1 deletion(-)
 
 diff --git a/drivers/gpio/gpiolib-sysfs.c b/drivers/gpio/gpiolib-sysfs.c
-index 44c1ad51b3fe..36d9ffc44f2b 100644
+index 12d853845bb8..8b7e9e37ff91 100644
 --- a/drivers/gpio/gpiolib-sysfs.c
 +++ b/drivers/gpio/gpiolib-sysfs.c
-@@ -151,7 +151,7 @@ static irqreturn_t gpio_sysfs_irq(int irq, void *priv)
+@@ -157,7 +157,7 @@ static irqreturn_t gpio_sysfs_irq(int irq, void *priv)
  {
  	struct gpiod_data *data = priv;
  
@@ -27,15 +27,15 @@ index 44c1ad51b3fe..36d9ffc44f2b 100644
  	return IRQ_HANDLED;
  }
 diff --git a/fs/kernfs/file.c b/fs/kernfs/file.c
-index 60e2a86c535e..489fecd7e3d7 100644
+index 180906c36f51..c26c58862180 100644
 --- a/fs/kernfs/file.c
 +++ b/fs/kernfs/file.c
-@@ -940,6 +940,43 @@ void kernfs_notify(struct kernfs_node *kn)
+@@ -1002,6 +1002,43 @@ void kernfs_notify(struct kernfs_node *kn)
  }
  EXPORT_SYMBOL_GPL(kernfs_notify);
  
 +/**
-+ * kernfs_notify_highpri - notify a kernfs file
++ * kernfs_notify - notify a kernfs file
 + * @kn: file to notify
 + *
 + * Notify @kn such that poll(2) on @kn wakes up.  Maybe be called from any
@@ -51,13 +51,13 @@ index 60e2a86c535e..489fecd7e3d7 100644
 +		return;
 +
 +	/* kick poll immediately */
-+	spin_lock_irqsave(&kernfs_open_node_lock, flags);
-+	on = kn->attr.open;
++	rcu_read_lock();
++	on = rcu_dereference(kn->attr.open);
 +	if (on) {
 +		atomic_inc(&on->event);
 +		wake_up_interruptible(&on->poll);
 +	}
-+	spin_unlock_irqrestore(&kernfs_open_node_lock, flags);
++	rcu_read_unlock();
 +
 +	/* schedule work to kick fsnotify */
 +	spin_lock_irqsave(&kernfs_notify_lock, flags);
@@ -75,10 +75,10 @@ index 60e2a86c535e..489fecd7e3d7 100644
  	.read_iter	= kernfs_fop_read_iter,
  	.write_iter	= kernfs_fop_write_iter,
 diff --git a/include/linux/kernfs.h b/include/linux/kernfs.h
-index 1093abf7c28c..0cf543f15752 100644
+index 5a952d00ea15..8701b985f0ce 100644
 --- a/include/linux/kernfs.h
 +++ b/include/linux/kernfs.h
-@@ -400,6 +400,7 @@ int kernfs_setattr(struct kernfs_node *kn, const struct iattr *iattr);
+@@ -446,6 +446,7 @@ int kernfs_setattr(struct kernfs_node *kn, const struct iattr *iattr);
  __poll_t kernfs_generic_poll(struct kernfs_open_file *of,
  			     struct poll_table_struct *pt);
  void kernfs_notify(struct kernfs_node *kn);
