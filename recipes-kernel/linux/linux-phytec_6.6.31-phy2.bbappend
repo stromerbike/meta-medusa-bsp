@@ -1,4 +1,4 @@
-FILESEXTRAPATHS:append := "${THISDIR}/linux-mainline:"
+FILESEXTRAPATHS:append := "${THISDIR}/${PN}:"
 
 # Due to append, nothing needed
 # SUMMARY = "Custom kernel modifications"
