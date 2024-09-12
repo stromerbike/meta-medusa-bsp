@@ -338,6 +338,7 @@
 		spi-max-frequency = <200000>;
 		spi-cpol;
 		spi-cpha;
+		spi-rx-bus-width = <0>;
 
 		port {
 			panel_in: endpoint {
