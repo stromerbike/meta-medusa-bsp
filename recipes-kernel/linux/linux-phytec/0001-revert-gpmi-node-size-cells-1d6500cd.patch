@@ -1,0 +1,27 @@
+From cb1a80c70cf527a2fe02c3903163a9e33f274cf7 Mon Sep 17 00:00:00 2001
+From: tristan.ramseyer <tristan.ramseyer@stromerbike.com>
+Date: Mon, 4 Nov 2024 13:01:37 +0100
+Subject: [PATCH] revert gpmi node size-cells 1d6500cd
+
+Upstream-Status: Inappropriate [stromer-specific]
+Signed-off-by: tristan.ramseyer <tristan.ramseyer@stromerbike.com>
+---
+ arch/arm/boot/dts/nxp/imx/imx6ul.dtsi | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/arch/arm/boot/dts/nxp/imx/imx6ul.dtsi b/arch/arm/boot/dts/nxp/imx/imx6ul.dtsi
+index 3b87d980e9f4..0174f3edbd16 100644
+--- a/arch/arm/boot/dts/nxp/imx/imx6ul.dtsi
++++ b/arch/arm/boot/dts/nxp/imx/imx6ul.dtsi
+@@ -179,7 +179,7 @@ dma_apbh: dma-controller@1804000 {
+ 		gpmi: nand-controller@1806000 {
+ 			compatible = "fsl,imx6q-gpmi-nand";
+ 			#address-cells = <1>;
+-			#size-cells = <0>;
++			#size-cells = <1>;
+ 			reg = <0x01806000 0x2000>, <0x01808000 0x2000>;
+ 			reg-names = "gpmi-nand", "bch";
+ 			interrupts = <0 15 IRQ_TYPE_LEVEL_HIGH>;
+-- 
+2.43.0
+

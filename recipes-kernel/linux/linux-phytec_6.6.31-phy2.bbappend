@@ -22,6 +22,7 @@ SRC_URI += " file://0001-increase-gpio-irq-priority.patch"
 
 # required for barebox 2016.11.0
 SRC_URI += " file://0001-revert-gpmi-node-address-and-name-9b4941a7-17580888.patch"
+SRC_URI += " file://0001-revert-gpmi-node-size-cells-1d6500cd.patch"
 
 # show boot logo even if quiet is used as kernel command line parameter
 SRC_URI += " file://0001-fbcon-show-logo-even-if-loglevel-is-quiet.patch"
